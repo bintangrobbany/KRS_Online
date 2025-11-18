@@ -6,6 +6,7 @@ import '../controllers/welcome_controller.dart';
 
 class WelcomeView extends StatelessWidget {
   // Buat instance dari controller
+
   final WelcomeController _controller = WelcomeController();
 
   // Definisikan warna agar mudah diubah

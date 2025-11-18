@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../controllers/login_controller.dart';
+import 'forgot_password_view.dart'; // <-- 1. Tambahkan import untuk halaman forgot password
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -13,7 +14,7 @@ class LoginView extends StatefulWidget {
 class _LoginViewState extends State<LoginView> {
   final LoginController _controller = LoginController();
 
-  final Color backgroundColor = const Color.fromARGB(255, 255, 232, 197);
+  final Color backgroundColor = const Color(0xFFF0EBE3);
   final Color primaryColor = const Color(0xFF006A4E);
   final Color textColor = const Color(0xFF004D38);
 
@@ -38,7 +39,7 @@ class _LoginViewState extends State<LoginView> {
                 'Log in',
                 style: TextStyle(
                   color: primaryColor,
-                  fontSize: 40,
+                  fontSize: 36,
                   fontWeight: FontWeight.w900,
                   fontFamily: 'Poppins',
                 ),
@@ -50,12 +51,13 @@ class _LoginViewState extends State<LoginView> {
                 style: TextStyle(color: textColor, fontFamily: 'Poppins'),
               ),
               const SizedBox(height: 8),
+
               TextField(
                 controller: _controller.usernameController,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
-                  hintText: 'Enter Username/NIM',
+                  hintText: 'Enter username/nim', // hintText sudah diubah
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -83,7 +85,7 @@ class _LoginViewState extends State<LoginView> {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white,
-                      hintText: 'Enter Password',
+                      hintText: 'Enter password', // hintText sudah diubah
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -101,19 +103,27 @@ class _LoginViewState extends State<LoginView> {
                   );
                 },
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 12),
 
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  // 2. Tambahkan navigasi ke ForgotPasswordView di sini
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordView(),
+                      ),
+                    );
+                  },
                   child: Text(
                     'Forgot password?',
                     style: TextStyle(color: textColor, fontFamily: 'Poppins'),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
               SizedBox(
                 width: double.infinity,
