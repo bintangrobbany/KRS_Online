@@ -10,7 +10,7 @@ class WelcomeView extends StatelessWidget {
   final WelcomeController _controller = WelcomeController();
 
   // Definisikan warna agar mudah diubah
-  final Color backgroundColor = const Color.fromARGB(255, 255, 232, 197);
+  final Color backgroundColor = const Color(0xFFF0EBE3);
   final Color primaryColor = const Color(0xFF006A4E); // Warna hijau tua
   final Color textColor = const Color(0xFF004D38);
 
@@ -71,7 +71,7 @@ class WelcomeView extends StatelessWidget {
                 // Panggil method dari controller saat tombol ditekan
                 onPressed: () => _controller.navigateToLogin(context),
                 child: const Text(
-                  'Sign In',
+                  'Log In',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,

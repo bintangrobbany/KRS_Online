@@ -14,7 +14,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   final ForgotPasswordController _controller = ForgotPasswordController();
 
   // Definisikan warna sesuai permintaan Anda
-  final Color backgroundColor = const Color.fromARGB(255, 255, 232, 197);
+  final Color backgroundColor = const Color(0xFFF0EBE3);
   final Color primaryColor = const Color(0xFF006A4E);
   final Color textColor = const Color(
     0xFF333333,
