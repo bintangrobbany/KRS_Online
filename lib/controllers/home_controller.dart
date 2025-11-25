@@ -1,41 +1,66 @@
-// lib/controllers/home_controller.dart
-
+import 'package:flutter/material.dart';
 import '../models/home_model.dart';
 
 class HomeController {
-  final HomeModel _model = HomeModel();
+  // --- SINGLETON PATTERN ---
+  // Agar datanya tidak hilang saat pindah-pindah halaman
+  static final HomeController _instance = HomeController._internal();
+  factory HomeController() => _instance;
+  HomeController._internal();
 
-  // Getter untuk mengakses seluruh model
+  // --- DATA PROFILE ---
+  final HomeModel _model = HomeModel(
+    studentName: "Edra Edogawa",
+    nim: "2022103703256",
+    programStudi: "Informatika",
+    semester: "Genap",
+    year: "2025",
+    profileImageUrl: "https://i.pravatar.cc/300",
+    takenCourses: [],
+  );
+
   HomeModel get model => _model;
 
-  // --- LOGIKA BISNIS ---
+  // --- DATA KRS SAYA (SHARED DATA) ---
+  // Ini list yang akan menampung kelas Aktif DAN Waiting List
+  List<Map<String, dynamic>> myKrsList = [
+    {
+      "name": "Pemrograman Web",
+      "time": "13.00 - 15.30",
+      "sks": 3,
+      "status": "Aktif",
+    },
+    {
+      "name": "Logika Komputasi",
+      "time": "08.40 - 09.30",
+      "sks": 2,
+      "status": "Aktif",
+    },
+    {
+      "name": "Kalkulus Lanjut",
+      "time": "08.00 - 18.00",
+      "sks": 3,
+      "status": "Aktif",
+    },
+    // Nanti Waiting List akan masuk ke sini
+  ];
 
-  /// Mengambil semua mata kuliah yang diambil (untuk "Review Kelas")
-  List<Course> get coursesForReview {
-    return _model.takenCourses;
+  // Fungsi tambah ke KRS (Dipanggil dari DaftarKelasView)
+  void addWaitingList(String name, String schedule, int sks) {
+    myKrsList.add({
+      "name": name,
+      "time": schedule,
+      "sks": sks,
+      "status": "Waiting List",
+    });
   }
 
-  /// Mengambil HANYA mata kuliah yang sudah di-approve (untuk "Grid Jadwal")
-  List<Course> get approvedCoursesForSchedule {
-    return _model.takenCourses.where((course) => course.status == CourseStatus.approved).toList();
-  }
-  
-  /// Menghitung total SKS yang diambil
-  int get totalSksTaken {
-    // Menjumlahkan SKS dari semua mata kuliah yang diambil (tidak peduli status)
-    return _model.takenCourses.fold(0, (sum, course) => sum + course.sks);
+  // Fungsi hapus dari KRS (Dipanggil dari ReviewKelasView/Tombol Sampah)
+  void removeKrsItem(int index) {
+    myKrsList.removeAt(index);
   }
 
-  // --- Aksi Tombol ---
-  void onFormKrsTapped() {
-    print("Tombol Form KRS ditekan");
-  }
-
-  void onDaftarKelasTapped() {
-    print("Tombol Daftar Kelas ditekan");
-  }
-
-  void onGridJadwalTapped() {
-    print("Tombol Grid Jadwal ditekan");
-  }
+  // --- NAVIGASI ---
+  void onFormKrsTapped() {}
+  void onGridJadwalTapped() {}
 }
