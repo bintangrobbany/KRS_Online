@@ -37,7 +37,7 @@ Jika kapasitas suatu kelas penuh, sistem menyediakan mekanisme waiting list untu
 | -------------------- | --------------- | -------------------------------- | --------------- |
 | Rekayasa Interaksi B | 202210370311250 | Muchammad Bintang Zulfar Robbany | @bintangrobbany |
 | Rekayasa Interaksi B | 202210370311218 | Edra Angga Wardhana              | @edrawardhana   |
-| Rekayasa Interaksi B | 202210370311356 | Igo Fatahilah Ilham              | @gooham         |
+| Rekayasa Interaksi B | 202210370311356 | Igo Fatahilah Ilham              | @gohaam         |
 | Rekayasa Interaksi B | 202210370311055 | Weldan Andreanor                 | @weldan12       |
 
 ---
@@ -56,7 +56,7 @@ Jika kapasitas suatu kelas penuh, sistem menyediakan mekanisme waiting list untu
 
 ### 🧩 Low-Fidelity Prototype
 
-🔗 `https://`
+🔗 `Low-fidelity.pdf`
 
 ---
 
