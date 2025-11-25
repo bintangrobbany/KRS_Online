@@ -50,13 +50,13 @@ Jika kapasitas suatu kelas penuh, sistem menyediakan mekanisme waiting list untu
 
 ### 📂 Worksheet Dokumentasi
 
-🔗 `https://`
+🔗 `https://github.com/bintangrobbany/KRS_Online/blob/5e04443bab176942f72d33e8ea6e897b0992d1a5/Worksheet.pdf`
 
 ---
 
 ### 🧩 Low-Fidelity Prototype
 
-🔗 `Low-fidelity.pdf`
+🔗 `https://github.com/bintangrobbany/KRS_Online/blob/5e04443bab176942f72d33e8ea6e897b0992d1a5/Low-fidelity.pdf`
 
 ---
 
