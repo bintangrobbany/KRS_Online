@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import '../controllers/home_controller.dart';
-import '../models/home_model.dart';
+// import '../models/home_model.dart'; // (Opsional: Tidak wajib jika tidak dipakai langsung)
 
-// --- IMPORT HALAMAN LAIN (Gunakan file placeholder jika belum dibuat) ---
+// --- IMPORT HALAMAN LAIN ---
 import 'daftar_kelas_view.dart';
 import 'profile_view.dart';
 import 'settings_view.dart';
 import 'form_krs_view.dart';
 import 'review_kelas_view.dart';
-import 'grid_jadwal_view.dart'; // <-- IMPORT BARU DITAMBAHKAN
+import 'grid_jadwal_view.dart';
+import 'saved_classes_view.dart'; // <-- 1. IMPORT PENTING
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -26,9 +27,9 @@ class _HomeViewState extends State<HomeView> {
   final Color primaryGreen = const Color(0xFF054F40);
   final Color textDark = const Color(0xFF1A1A1A);
   final Color textGrey = const Color(0xFF888888);
-  final Color warningYellow = const Color(0xFFF57F17); // Warna Waiting List
+  final Color warningYellow = const Color(0xFFF57F17);
 
-  // Fungsi refresh saat kembali ke home agar data terupdate
+  // Fungsi refresh saat kembali ke home
   void _refreshData() {
     setState(() {});
   }
@@ -58,7 +59,7 @@ class _HomeViewState extends State<HomeView> {
               _buildGridJadwalCard(context),
               const SizedBox(height: 24),
 
-              // 4. Card Daftar Kelas (List Bawah) - SEKARANG BISA DIKLIK
+              // 4. Card Daftar Kelas (List Bawah)
               _buildDaftarKelasCard(),
 
               const SizedBox(height: 40),
@@ -226,12 +227,11 @@ class _HomeViewState extends State<HomeView> {
           ),
           const SizedBox(width: 10),
 
-          // TOMBOL 3: Grid Jadwal (REVISI NAVIGASI)
+          // TOMBOL 3: Grid Jadwal
           SizedBox(
             width: 120,
             child: ElevatedButton(
               onPressed: () {
-                // Navigasi ke halaman Grid Jadwal
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -240,7 +240,7 @@ class _HomeViewState extends State<HomeView> {
                 );
               },
               style: getStyle(primaryGreen),
-              child: Text(
+              child: const Text(
                 'Grid Jadwal',
                 style: TextStyle(color: Colors.white, fontSize: 13),
               ),
@@ -272,12 +272,9 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  // REVISI KARTU GRID JADWAL
   Widget _buildGridJadwalCard(BuildContext context) {
-    // Dibungkus dengan GestureDetector agar bisa diklik
     return GestureDetector(
       onTap: () {
-        // Navigasi ke halaman Grid Jadwal
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const GridJadwalView()),
@@ -306,7 +303,6 @@ class _HomeViewState extends State<HomeView> {
                   'Grid Jadwal Kelas',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                // Indikator bisa diklik
                 Row(
                   children: [
                     Text(
@@ -395,7 +391,6 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  // --- CARD BAWAH: DAFTAR KELAS (BISA DIKLIK) ---
   Widget _buildDaftarKelasCard() {
     final myClasses = _controller.myKrsList;
     return GestureDetector(
@@ -515,6 +510,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  // --- REVISI DI SINI ---
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
       height: 70,
@@ -526,10 +522,17 @@ class _HomeViewState extends State<HomeView> {
             icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
             onPressed: () {},
           ),
+          // --- TOMBOL SAVES YANG DIPERBAIKI ---
           IconButton(
             icon: const Icon(Icons.bookmark_border, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SavedClassesView()),
+              );
+            },
           ),
+          // ------------------------------------
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: bgCanvas, shape: BoxShape.circle),
