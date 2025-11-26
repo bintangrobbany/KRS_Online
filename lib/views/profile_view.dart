@@ -6,6 +6,7 @@ import 'settings_view.dart';
 import 'logout_view.dart';
 import 'edit_profile_view.dart';
 import 'personal_information_view.dart';
+import 'saved_classes_view.dart'; // <-- 1. IMPORT FILE BARU
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -15,7 +16,6 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
-  // Panggil instance Singleton dari HomeController
   final HomeController _controller = HomeController();
 
   // --- PALET WARNA ---
@@ -27,26 +27,21 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   void initState() {
     super.initState();
-    // Daftarkan listener untuk "mendengarkan" perubahan dari controller
     _controller.addListener(_onProfileChanged);
   }
 
   @override
   void dispose() {
-    // Hapus listener untuk mencegah kebocoran memori
     _controller.removeListener(_onProfileChanged);
     super.dispose();
   }
 
-  // Fungsi ini akan dijalankan setiap kali controller memanggil notifyListeners()
   void _onProfileChanged() {
-    // Memerintahkan Flutter untuk membangun ulang widget ini dengan data terbaru
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    // Akses data di dalam method build agar selalu yang terbaru
     final bool isProfileComplete = _controller.model.isProfileComplete;
 
     return Scaffold(
@@ -66,24 +61,25 @@ class _ProfileViewState extends State<ProfileView> {
             const SizedBox(height: 10),
             Text(
               "Hello, ${_controller.model.studentName.split(' ')[0]}",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryGreen),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: primaryGreen,
+              ),
             ),
             const SizedBox(height: 24),
             _buildProfileImage(_controller.model.profileImageUrl),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {
-                // Navigasi ke halaman edit profil dan tunggu hasilnya
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const EditProfileView()),
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileView(),
+                  ),
                 );
-                
-                // Setelah kembali, jika ada data yang dikirimkan
+
                 if (result != null && result is Map<String, String>) {
-                  // Panggil fungsi updateProfile.
-                  // Fungsi ini akan otomatis memanggil notifyListeners(),
-                  // yang kemudian akan memicu _onProfileChanged dan setState().
                   _controller.updateProfile(
                     phone: result['phone'],
                     email: result['email'],
@@ -95,8 +91,13 @@ class _ProfileViewState extends State<ProfileView> {
                 backgroundColor: Colors.white,
                 foregroundColor: primaryGreen,
                 elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 12,
+                ),
               ),
               child: Text(
                 isProfileComplete ? "Edit Profile" : "Atur Profile",
@@ -106,26 +107,54 @@ class _ProfileViewState extends State<ProfileView> {
             const SizedBox(height: 30),
             _buildStatsRow(),
             const SizedBox(height: 30),
+
+            // MENU OPTIONS
             _buildMenuOption(
               Icons.person_outline,
               "Personal Information",
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const PersonalInformationView()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PersonalInformationView(),
+                  ),
+                );
               },
             ),
             _buildMenuOption(
               Icons.settings_outlined,
               "Settings",
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsView()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsView()),
+                );
               },
             ),
-            _buildMenuOption(Icons.bookmark_border, "Saves"),
+
+            // --- 2. UPDATE BAGIAN SAVES DISINI ---
+            _buildMenuOption(
+              Icons.bookmark_border,
+              "Saves",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SavedClassesView(),
+                  ),
+                );
+              },
+            ),
+
+            // -------------------------------------
             _buildMenuOption(
               Icons.logout,
               "Logout",
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const LogoutView()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LogoutView()),
+                );
               },
             ),
             const SizedBox(height: 40),
@@ -135,7 +164,7 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // --- WIDGET BUILDERS ---
+  // --- WIDGET BUILDERS (Tetap Sama) ---
 
   Widget _buildProfileImage(String imageUrl) {
     return Stack(
@@ -143,13 +172,30 @@ class _ProfileViewState extends State<ProfileView> {
       children: [
         Container(
           padding: const EdgeInsets.all(4),
-          decoration: const BoxDecoration(color: Colors.transparent, shape: BoxShape.circle),
-          child: CircleAvatar(radius: 60, backgroundColor: Colors.grey[300], backgroundImage: NetworkImage(imageUrl)),
+          decoration: const BoxDecoration(
+            color: Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: CircleAvatar(
+            radius: 60,
+            backgroundColor: Colors.grey[300],
+            backgroundImage: NetworkImage(imageUrl),
+          ),
         ),
         Container(
           height: 40,
           width: 40,
-          decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, spreadRadius: 1)]),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
           child: Icon(Icons.camera_alt_outlined, color: primaryGreen, size: 20),
         ),
       ],
@@ -175,13 +221,34 @@ class _ProfileViewState extends State<ProfileView> {
         decoration: BoxDecoration(
           color: primaryGreen,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: primaryGreen.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textWhite)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: textWhite,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: textWhite.withOpacity(0.9), height: 1.2)),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: textWhite.withOpacity(0.9),
+                height: 1.2,
+              ),
+            ),
           ],
         ),
       ),
@@ -194,13 +261,31 @@ class _ProfileViewState extends State<ProfileView> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         leading: Icon(icon, color: primaryGreen, size: 26),
-        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: textDark, fontSize: 15)),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: textDark,
+            fontSize: 15,
+          ),
+        ),
         onTap: onTap,
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ), // Tambahan panah kecil agar lebih manis
       ),
     );
   }

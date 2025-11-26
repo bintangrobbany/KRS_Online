@@ -18,53 +18,60 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   final Color textDark = const Color(0xFF1A1A1A);
   final Color textGrey = const Color(0xFF888888);
   final Color alertRed = const Color(0xFFD32F2F);
-  final Color warningYellow = const Color(0xFFF57F17);
+  final Color warningYellow = const Color(
+    0xFFF57F17,
+  ); // Warna Kuning untuk tombol Save
 
   // --- STATE FILTER & SORT ---
   String _selectedSks = "Semua SKS";
   String _selectedSort = "Terbaru";
 
-  // --- DATA MASTER (UPDATE DENGAN DATA ANTREAN) ---
+  // --- DATA MASTER ---
+  // (Updated: Menambahkan properti 'isSaved')
   final List<Map<String, dynamic>> _masterClassList = [
     {
       "code": "IF320",
       "sks": 3,
       "name": "Pemrograman Web",
       "schedule": "13:00-15:30",
-      "day": "Senin", // <-- DIUBAH: Tambahkan data hari
+      "day": "Senin",
       "slot": 0,
       "queueCount": 12,
       "isJoined": false,
+      "isSaved": false, // Status simpan
     },
     {
       "code": "IF402",
       "sks": 4,
       "name": "Algoritma & Struktur Data",
       "schedule": "07:00-10:20",
-      "day": "Selasa", // <-- DIUBAH: Tambahkan data hari
+      "day": "Selasa",
       "slot": 15,
       "queueCount": 0,
       "isJoined": false,
+      "isSaved": false,
     },
     {
       "code": "IF410",
       "sks": 4,
       "name": "Kalkulus Lanjut",
       "schedule": "07:00-10:20",
-      "day": "Senin", // <-- DIUBAH: Tambahkan data hari
+      "day": "Senin",
       "slot": 0,
       "queueCount": 0,
       "isJoined": false,
+      "isSaved": false,
     },
     {
       "code": "IF350",
       "sks": 3,
       "name": "Jaringan Komputer",
       "schedule": "13:00-15:30",
-      "day": "Rabu", // <-- DIUBAH: Tambahkan data hari
+      "day": "Rabu",
       "slot": 0,
       "queueCount": 5,
       "isJoined": false,
+      "isSaved": false,
     },
   ];
 
@@ -95,6 +102,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     });
   }
 
+  // --- LOGIC: JOIN QUEUE ---
   void _joinQueue(Map<String, dynamic> classData) {
     setState(() {
       classData['isJoined'] = true;
@@ -106,7 +114,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       classData['name'],
       classData['schedule'],
       classData['sks'],
-      classData['day'], // <-- DIUBAH: Tambahkan argumen ke-4 (hari)
+      classData['day'],
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -114,6 +122,26 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
         content: Text("Berhasil masuk antrean untuk ${classData['name']}"),
         backgroundColor: warningYellow,
         duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  // --- LOGIC: TOGGLE SAVE/BOOKMARK (BARU) ---
+  void _toggleSave(Map<String, dynamic> classData) {
+    setState(() {
+      classData['isSaved'] = !classData['isSaved'];
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          classData['isSaved']
+              ? "${classData['name']} disimpan!"
+              : "${classData['name']} dihapus dari simpanan.",
+        ),
+        backgroundColor: classData['isSaved'] ? warningYellow : Colors.grey,
+        duration: const Duration(milliseconds: 800),
       ),
     );
   }
@@ -127,6 +155,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
         child: Column(
           children: [
             const SizedBox(height: 24),
+            // --- SEARCH BAR ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Row(
@@ -164,6 +193,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
             const SizedBox(height: 24),
+            // --- FILTER SECTION ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
@@ -207,6 +237,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
             const SizedBox(height: 24),
+            // --- LIST VIEW ---
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -248,6 +279,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     );
   }
 
+  // Helper Widget Dropdown
   Widget _buildFunctionalDropdown({
     required String value,
     required List<String> items,
@@ -293,15 +325,18 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     );
   }
 
+  // --- CARD ITEM BUILDER ---
   Widget _buildClassCard(Map<String, dynamic> data) {
     bool isFull = data['slot'] <= 0;
     bool isJoined = data['isJoined'] == true;
+    bool isSaved = data['isSaved'] == true; // Cek status saved
     int currentQueue = data['queueCount'] ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       child: Stack(
         children: [
+          // 1. Content Card Utama
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -339,15 +374,17 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                // <-- DIUBAH: Menampilkan hari dan jadwal
                 Text(
                   "${data['day']}, ${data['schedule']}",
                   style: TextStyle(color: textGrey, fontSize: 13),
                 ),
-                if (isFull) const SizedBox(height: 30),
+                // Spacer agar text tidak tertutup tombol di bawah
+                const SizedBox(height: 40),
               ],
             ),
           ),
+
+          // 2. Badge Slot (Kanan Atas)
           Positioned(
             right: 12,
             top: 12,
@@ -368,56 +405,93 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
           ),
-          if (isFull)
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: GestureDetector(
-                onTap: isJoined ? null : () => _joinQueue(data),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isJoined ? warningYellow : primaryGreen,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      if (!isJoined)
+
+          // 3. Action Buttons (Kanan Bawah)
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // --- TOMBOL SAVE (KUNING) ---
+                GestureDetector(
+                  onTap: () => _toggleSave(data),
+                  child: Container(
+                    height: 36,
+                    width: 36,
+                    decoration: BoxDecoration(
+                      color: warningYellow, // Warna kuning sesuai request
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
                         BoxShadow(
-                          color: primaryGreen.withOpacity(0.4),
+                          color: warningYellow.withOpacity(0.4),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isJoined)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 4.0),
-                          child: Icon(
-                            Icons.hourglass_bottom_rounded,
-                            color: Colors.white,
-                            size: 12,
-                          ),
-                        ),
-                      Text(
-                        isJoined
-                            ? "Antrean ke-$currentQueue"
-                            : "Daftar Antrean",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
-              ),
+
+                // --- TOMBOL DAFTAR (Jika Kelas Penuh) ---
+                if (isFull) ...[
+                  const SizedBox(width: 8), // Jarak antar tombol
+                  GestureDetector(
+                    onTap: isJoined ? null : () => _joinQueue(data),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      height: 36, // Tinggi disamakan dengan tombol save
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isJoined ? Colors.grey : primaryGreen,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          if (!isJoined)
+                            BoxShadow(
+                              color: primaryGreen.withOpacity(0.4),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isJoined)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 4.0),
+                              child: Icon(
+                                Icons.hourglass_bottom_rounded,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                            ),
+                          Text(
+                            isJoined
+                                ? "Antrean #${data['queueCount']}"
+                                : "Daftar Antrean",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
+          ),
         ],
       ),
     );
