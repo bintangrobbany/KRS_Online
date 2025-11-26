@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import '../controllers/home_controller.dart';
 import '../models/home_model.dart';
 
-// --- IMPORT HALAMAN LAIN ---
-import 'daftar_kelas_view.dart'; // Halaman War Slot / Antrean
-import 'profile_view.dart'; // Halaman Profil
-import 'settings_view.dart'; // Halaman Settings
-import 'form_krs_view.dart'; // Halaman Form Manual
-import 'review_kelas_view.dart'; // Halaman Status KRS Saya
+// --- IMPORT HALAMAN LAIN (Gunakan file placeholder jika belum dibuat) ---
+import 'daftar_kelas_view.dart';
+import 'profile_view.dart';
+import 'settings_view.dart';
+import 'form_krs_view.dart';
+import 'review_kelas_view.dart';
+import 'grid_jadwal_view.dart'; // <-- IMPORT BARU DITAMBAHKAN
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -54,7 +55,7 @@ class _HomeViewState extends State<HomeView> {
               const SizedBox(height: 24),
 
               // 3. Grid Jadwal Card
-              _buildGridJadwalCard(),
+              _buildGridJadwalCard(context),
               const SizedBox(height: 24),
 
               // 4. Card Daftar Kelas (List Bawah) - SEKARANG BISA DIKLIK
@@ -171,14 +172,18 @@ class _HomeViewState extends State<HomeView> {
     ButtonStyle getStyle(Color bgColor) {
       return ElevatedButton.styleFrom(
         backgroundColor: bgColor,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: bgColor == cardWhite ? 2 : 0,
+        shadowColor: bgColor == cardWhite
+            ? Colors.black.withOpacity(0.1)
+            : Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       );
     }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
       child: Row(
         children: [
           // TOMBOL 1: Form KRS
@@ -200,42 +205,7 @@ class _HomeViewState extends State<HomeView> {
           ),
           const SizedBox(width: 10),
 
-          // TOMBOL 2: Daftar Kelas (Ke Halaman Status/KRS Saya)
-          SizedBox(
-            width: 120,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReviewKelasView(),
-                  ),
-                ).then((_) => _refreshData());
-              },
-              style: getStyle(cardWhite),
-              child: Text(
-                'Daftar Kelas',
-                style: TextStyle(color: textDark, fontSize: 13),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // TOMBOL 3: Grid Jadwal
-          SizedBox(
-            width: 120,
-            child: ElevatedButton(
-              onPressed: _controller.onGridJadwalTapped,
-              style: getStyle(cardWhite),
-              child: Text(
-                'Grid Jadwal',
-                style: TextStyle(color: textDark, fontSize: 13),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // TOMBOL 4: Review Kelas (Ke Halaman War/Antrean)
+          // TOMBOL 2: Daftar Kelas
           SizedBox(
             width: 120,
             child: ElevatedButton(
@@ -247,69 +217,131 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 ).then((_) => _refreshData());
               },
-              style: getStyle(cardWhite),
-              child: Text(
-                'Review Kelas',
-                style: TextStyle(color: textDark, fontSize: 13),
+              style: getStyle(primaryGreen),
+              child: const Text(
+                'Daftar Kelas',
+                style: TextStyle(color: Colors.white, fontSize: 13),
               ),
             ),
           ),
+          const SizedBox(width: 10),
 
-          const SizedBox(width: 20),
+          // TOMBOL 3: Grid Jadwal (REVISI NAVIGASI)
+          SizedBox(
+            width: 120,
+            child: ElevatedButton(
+              onPressed: () {
+                // Navigasi ke halaman Grid Jadwal
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GridJadwalView(),
+                  ),
+                );
+              },
+              style: getStyle(primaryGreen),
+              child: Text(
+                'Grid Jadwal',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // TOMBOL 4: Review Kelas
+          SizedBox(
+            width: 120,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReviewKelasView(),
+                  ),
+                ).then((_) => _refreshData());
+              },
+              style: getStyle(primaryGreen),
+              child: const Text(
+                'Review Kelas',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildGridJadwalCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardWhite,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Grid Jadwal Kelas',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Text('See more', style: TextStyle(color: textGrey, fontSize: 12)),
-            ],
-          ),
-          Text(
-            'SKS yang diambil :',
-            style: TextStyle(color: textGrey, fontSize: 12),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Icon(Icons.calendar_today_outlined, size: 20, color: textDark),
-              const SizedBox(width: 8),
-              Text(
-                'Jadwal saya',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: textDark,
+  // REVISI KARTU GRID JADWAL
+  Widget _buildGridJadwalCard(BuildContext context) {
+    // Dibungkus dengan GestureDetector agar bisa diklik
+    return GestureDetector(
+      onTap: () {
+        // Navigasi ke halaman Grid Jadwal
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const GridJadwalView()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: cardWhite,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Grid Jadwal Kelas',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildTimelineGrid(),
-        ],
+                // Indikator bisa diklik
+                Row(
+                  children: [
+                    Text(
+                      'See more',
+                      style: TextStyle(color: textGrey, fontSize: 12),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_forward_ios, size: 12, color: textGrey),
+                  ],
+                ),
+              ],
+            ),
+            Text(
+              'SKS yang diambil :',
+              style: TextStyle(color: textGrey, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.calendar_today_outlined, size: 20, color: textDark),
+                const SizedBox(width: 8),
+                Text(
+                  'Jadwal saya',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: textDark,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildTimelineGrid(),
+          ],
+        ),
       ),
     );
   }
@@ -366,11 +398,8 @@ class _HomeViewState extends State<HomeView> {
   // --- CARD BAWAH: DAFTAR KELAS (BISA DIKLIK) ---
   Widget _buildDaftarKelasCard() {
     final myClasses = _controller.myKrsList;
-
-    // BUNGKUS DENGAN GESTURE DETECTOR
     return GestureDetector(
       onTap: () {
-        // Navigasi ke halaman ReviewKelasView (Sama seperti tombol Daftar Kelas di atas)
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ReviewKelasView()),
@@ -399,7 +428,6 @@ class _HomeViewState extends State<HomeView> {
                   'Daftar Kelas',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                // Tampilkan jumlah kelas atau icon panah kecil
                 Row(
                   children: [
                     if (myClasses.isNotEmpty)
@@ -408,17 +436,12 @@ class _HomeViewState extends State<HomeView> {
                         style: TextStyle(fontSize: 12, color: textGrey),
                       ),
                     const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_forward_ios,
-                      size: 12,
-                      color: textGrey,
-                    ), // Indikator bisa diklik
+                    Icon(Icons.arrow_forward_ios, size: 12, color: textGrey),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 16),
-
             if (myClasses.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -448,7 +471,6 @@ class _HomeViewState extends State<HomeView> {
 
   Widget _buildReviewItem(String title, String subtitle, String status) {
     bool isWaiting = status == "Waiting List";
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(

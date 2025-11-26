@@ -1,9 +1,9 @@
 // lib/models/home_model.dart
 
-// 1. Kita buat Status Matkul (Approved/Pending)
+// 1. Enum untuk Status Mata Kuliah
 enum CourseStatus { approved, pending, rejected }
 
-// 2. Kita buat kerangka data untuk satu Mata Kuliah
+// 2. Class kerangka data untuk satu Mata Kuliah
 class Course {
   final String name;
   final int sks;
@@ -20,16 +20,21 @@ class Course {
   });
 }
 
-// 3. Kita update Model Utama Mahasiswa
+// 3. Class Model Utama untuk data Mahasiswa
 class HomeModel {
-  final String studentName;
-  final String nim;
-  final String programStudi;
-  final String semester;
-  final String year;
-  final String profileImageUrl; // Foto Profil
-  final List<Course> takenCourses; // Daftar matkul yang diambil
+  // --- SEMUA 'final' DIHAPUS AGAR NILAI BISA DIUBAH ---
+  String studentName;
+  String nim;
+  String programStudi;
+  String semester;
+  String year;
+  String profileImageUrl;
+  String email;
+  String phoneNumber;
+  String socialMedia;
+  List<Course> takenCourses;
 
+  // Constructor untuk model
   HomeModel({
     this.studentName = "",
     this.nim = "",
@@ -37,6 +42,15 @@ class HomeModel {
     this.semester = "",
     this.year = "",
     this.profileImageUrl = "",
-    this.takenCourses = const [], // Defaultnya list kosong biar gak error
+    this.email = "",
+    this.phoneNumber = "",
+    this.socialMedia = "",
+    this.takenCourses = const [],
   });
+  
+  /// Penanda apakah profil sudah lengkap.
+  /// Logikanya: jika nomor telepon atau sosmed masih kosong, maka belum lengkap.
+  bool get isProfileComplete {
+    return phoneNumber.isNotEmpty && socialMedia.isNotEmpty;
+  }
 }

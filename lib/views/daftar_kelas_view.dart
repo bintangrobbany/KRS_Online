@@ -18,8 +18,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   final Color textDark = const Color(0xFF1A1A1A);
   final Color textGrey = const Color(0xFF888888);
   final Color alertRed = const Color(0xFFD32F2F);
-
-  // WARNA BARU: Kuning/Amber untuk status "Sedang Mengantre"
   final Color warningYellow = const Color(0xFFF57F17);
 
   // --- STATE FILTER & SORT ---
@@ -32,17 +30,18 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       "code": "IF320",
       "sks": 3,
       "name": "Pemrograman Web",
-      "schedule": "Senin, 13:00-15:30",
+      "schedule": "13:00-15:30",
+      "day": "Senin", // <-- DIUBAH: Tambahkan data hari
       "slot": 0,
-      // TAMBAHAN DATA:
-      "queueCount": 12, // Sudah ada 12 orang yang antre
-      "isJoined": false, // Kita belum gabung
+      "queueCount": 12,
+      "isJoined": false,
     },
     {
       "code": "IF402",
       "sks": 4,
       "name": "Algoritma & Struktur Data",
-      "schedule": "Selasa, 07:00-10:20",
+      "schedule": "07:00-10:20",
+      "day": "Selasa", // <-- DIUBAH: Tambahkan data hari
       "slot": 15,
       "queueCount": 0,
       "isJoined": false,
@@ -51,21 +50,22 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       "code": "IF410",
       "sks": 4,
       "name": "Kalkulus Lanjut",
-      "schedule": "Senin, 07:00-10:20",
+      "schedule": "07:00-10:20",
+      "day": "Senin", // <-- DIUBAH: Tambahkan data hari
       "slot": 0,
-      "queueCount": 0, // Belum ada yang antre, kita jadi yang ke-1 nanti
+      "queueCount": 0,
       "isJoined": false,
     },
     {
       "code": "IF350",
       "sks": 3,
       "name": "Jaringan Komputer",
-      "schedule": "Rabu, 13:00-15:30",
+      "schedule": "13:00-15:30",
+      "day": "Rabu", // <-- DIUBAH: Tambahkan data hari
       "slot": 0,
       "queueCount": 5,
       "isJoined": false,
     },
-    // ... data lain opsional
   ];
 
   List<Map<String, dynamic>> _displayClassList = [];
@@ -77,12 +77,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   }
 
   void _filterAndSortClasses() {
-    // Logika filter sama seperti sebelumnya
-    // Note: Karena kita memodifikasi _masterClassList secara langsung saat klik tombol,
-    // kita perlu memastikan pointer list tetap sinkron.
-
-    List<Map<String, dynamic>> temp =
-        _masterClassList; // Gunakan referensi langsung untuk state sederhana
+    List<Map<String, dynamic>> temp = List.from(_masterClassList);
 
     if (_selectedSks != "Semua SKS") {
       int targetSks = int.parse(_selectedSks.split(' ')[0]);
@@ -100,23 +95,20 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     });
   }
 
-  // Fungsi untuk handle klik antrean
   void _joinQueue(Map<String, dynamic> classData) {
     setState(() {
-      // 1. Ubah status jadi 'Joined'
       classData['isJoined'] = true;
-      // 2. Tambah jumlah antrean +1 (artinya kita masuk antrean)
       classData['queueCount'] = classData['queueCount'] + 1;
     });
 
-    final controller = HomeController(); // Panggil controller
+    final controller = HomeController();
     controller.addWaitingList(
       classData['name'],
       classData['schedule'],
       classData['sks'],
+      classData['day'], // <-- DIUBAH: Tambahkan argumen ke-4 (hari)
     );
 
-    // Tampilkan Feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Berhasil masuk antrean untuk ${classData['name']}"),
@@ -135,7 +127,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
         child: Column(
           children: [
             const SizedBox(height: 24),
-            // 1. HEADER (Search)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Row(
@@ -173,8 +164,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // 2. FILTER
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
@@ -195,7 +184,9 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                         value: _selectedSks,
                         items: ["Semua SKS", "3 SKS", "4 SKS"],
                         onChanged: (val) {
-                          _selectedSks = val!;
+                          setState(() {
+                            _selectedSks = val!;
+                          });
                           _filterAndSortClasses();
                         },
                       ),
@@ -204,7 +195,9 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                         value: _selectedSort,
                         items: ["Terbaru", "Nama A-Z", "Slot Terbanyak"],
                         onChanged: (val) {
-                          _selectedSort = val!;
+                          setState(() {
+                            _selectedSort = val!;
+                          });
                           _filterAndSortClasses();
                         },
                       ),
@@ -214,8 +207,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // 3. LIST CARD
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -256,8 +247,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       ),
     );
   }
-
-  // --- WIDGET HELPER ---
 
   Widget _buildFunctionalDropdown({
     required String value,
@@ -306,8 +295,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
 
   Widget _buildClassCard(Map<String, dynamic> data) {
     bool isFull = data['slot'] <= 0;
-
-    // Status apakah user sudah join antrean
     bool isJoined = data['isJoined'] == true;
     int currentQueue = data['queueCount'] ?? 0;
 
@@ -352,18 +339,15 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                   ),
                 ),
                 const SizedBox(height: 6),
+                // <-- DIUBAH: Menampilkan hari dan jadwal
                 Text(
-                  data['schedule'],
+                  "${data['day']}, ${data['schedule']}",
                   style: TextStyle(color: textGrey, fontSize: 13),
                 ),
-
-                // Beri ruang untuk tombol antrean jika penuh
                 if (isFull) const SizedBox(height: 30),
               ],
             ),
           ),
-
-          // BADGE SLOT
           Positioned(
             right: 12,
             top: 12,
@@ -384,28 +368,22 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
           ),
-
-          // --- TOMBOL DAFTAR ANTREAN DINAMIS ---
           if (isFull)
             Positioned(
               right: 12,
               bottom: 12,
               child: GestureDetector(
-                // Jika sudah join, tombol tidak bisa diklik lagi (null)
-                // Jika belum join, panggil fungsi _joinQueue
                 onTap: isJoined ? null : () => _joinQueue(data),
-
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    // Warna berubah: Hijau (belum join) -> Kuning (sudah join)
                     color: isJoined ? warningYellow : primaryGreen,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
-                      if (!isJoined) // Efek shadow cuma kalau bisa diklik
+                      if (!isJoined)
                         BoxShadow(
                           color: primaryGreen.withOpacity(0.4),
                           blurRadius: 4,
@@ -416,7 +394,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Tambah icon kecil biar cantik
                       if (isJoined)
                         const Padding(
                           padding: EdgeInsets.only(right: 4.0),
@@ -426,9 +403,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                             size: 12,
                           ),
                         ),
-
                       Text(
-                        // Teks berubah sesuai status
                         isJoined
                             ? "Antrean ke-$currentQueue"
                             : "Daftar Antrean",
