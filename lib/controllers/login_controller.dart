@@ -2,15 +2,17 @@
 
 import 'package:flutter/material.dart';
 import '../views/home_view.dart';
-import '../models/login_model.dart'; // Tetap pakai ini sesuai kodemu
+import '../models/login_model.dart';
 
 class LoginController extends ChangeNotifier {
   final LoginModel _model = LoginModel();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // Warna Hijau Tua sesuai tema aplikasimu
-  final Color primaryGreen = const Color(0xFF054F40);
+  // --- Syarat Login ---
+  final String requiredNimPrefix = '202210370311';
+  final int requiredNimLength = 15;
+  final int minPasswordLength = 8;
 
   bool get isPasswordObscured => _model.isPasswordObscured;
 
@@ -19,93 +21,75 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- FUNGSI LOGIN YANG SUDAH DI-UPDATE ---
-  Future<void> login(BuildContext context) async {
-    final String username = usernameController.text;
+  /// Method login yang akan dipanggil oleh View.
+  /// Ia menerima 'onSuccess' sebagai parameter, yaitu sebuah fungsi yang akan dijalankan jika login berhasil.
+  Future<void> login(BuildContext context, VoidCallback onSuccess) async {
+    final String username = usernameController.text.trim();
     final String password = passwordController.text;
 
-    if (username.isNotEmpty && password.isNotEmpty) {
-      // 1. TAMPILKAN DIALOG POPUP HIJAU (Gantikan SnackBar lama)
-      showDialog(
-        context: context,
-        barrierDismissible: false, // User gabisa klik luar buat tutup
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor:
-                Colors.transparent, // Transparan biar sudutnya bulat
-            elevation: 0,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              height: 250,
-              width: 300,
-              decoration: BoxDecoration(
-                color: primaryGreen, // Warna kotak jadi Hijau Tua
-                borderRadius: BorderRadius.circular(30), // Sudut membulat
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Ikon Ceklis dalam lingkaran transparan
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+    // --- VALIDASI LOGIN ---
 
-                  // Teks "Login Successful"
-                  const Text(
-                    "Login Successful",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
+    // 1. Cek apakah kolom kosong
+    if (username.isEmpty || password.isEmpty) {
+      _showError(context, "NIM dan Password tidak boleh kosong");
+      return; // Hentikan eksekusi
+    }
+    
+    // 2. Cek apakah NIM berisi huruf/simbol
+    if (int.tryParse(username) == null) {
+      _showError(context, "NIM harus berupa angka");
+      return;
+    }
 
-      // 2. TUNGGU 2 DETIK (Biar user lihat popup hijaunya)
-      await Future.delayed(const Duration(seconds: 2));
+    // 3. Cek awalan NIM
+    if (!username.startsWith(requiredNimPrefix)) {
+      _showError(context, "Awalan NIM tidak valid");
+      return;
+    }
 
-      // 3. TUTUP DIALOG & PINDAH KE HOME
-      if (context.mounted) {
-        Navigator.pop(context); // Tutup Dialognya dulu
-      }
+    // 4. Cek panjang total NIM
+    if (username.length != requiredNimLength) {
+      _showError(context, "NIM harus terdiri dari 15 digit");
+      return;
+    }
+    
+    // 5. Cek panjang password
+    if (password.length < minPasswordLength) {
+      _showError(context, "Password minimal harus 8 karakter");
+      return;
+    }
+    
+    // --- JIKA SEMUA VALIDASI LOLOS ---
+    print("Validasi berhasil! Menampilkan dialog sukses...");
 
-      if (context.mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeView()),
-        );
-      }
-    } else {
-      // Jika GAGAL (Kosong), tetap pakai SnackBar Merah (Ini UX yang bagus)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Username dan Password tidak boleh kosong"),
-          backgroundColor: Colors.red,
-        ),
+    // 1. Jalankan fungsi 'onSuccess' yang dikirim dari LoginView.
+    // Ini akan menampilkan dialog pop-up.
+    onSuccess();
+
+    // 2. Tunggu selama 2 detik untuk memberi waktu pengguna melihat dialog.
+    await Future.delayed(const Duration(seconds: 2));
+
+    // 3. Pindah ke halaman HomeView.
+    // Pengecekan 'context.mounted' adalah praktik yang baik setelah 'await'.
+    if (context.mounted) {
+      // Tutup dialog yang sedang tampil sebelum navigasi
+      Navigator.of(context, rootNavigator: true).pop();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeView()),
       );
     }
+  }
+
+  /// Helper untuk menampilkan notifikasi error (SnackBar) agar tidak duplikasi kode.
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   @override

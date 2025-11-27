@@ -6,6 +6,7 @@ import 'forgot_password_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
+
   @override
   State<LoginView> createState() => _LoginViewState();
 }
@@ -15,6 +16,55 @@ class _LoginViewState extends State<LoginView> {
   final Color backgroundColor = const Color(0xFFF0EBE3);
   final Color primaryColor = const Color(0xFF006A4E);
   final Color textColor = const Color(0xFF004D38);
+
+  /// Method untuk membuat dan menampilkan dialog pop-up saat login berhasil.
+  void _showLoginSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User tidak bisa menutup dialog dengan klik di luar
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          child: Container(
+            height: 250, // Sesuaikan tinggi dialog
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: primaryColor, // Menggunakan warna hijau primer Anda
+              borderRadius: BorderRadius.circular(20.0),
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Ikon ceklis di dalam lingkaran hijau muda
+                CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.greenAccent,
+                  child: Icon(
+                    Icons.check,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+                SizedBox(height: 20),
+                // Teks "Login Successful"
+                Text(
+                  "Login Successful",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void dispose() {
@@ -32,19 +82,16 @@ class _LoginViewState extends State<LoginView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ... (kode UI lainnya tetap sama)
               const SizedBox(height: 40),
               Text(
                 'Log in',
-                style: TextStyle(
-                  color: primaryColor,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(color: primaryColor, fontSize: 36, fontWeight: FontWeight.w900, fontFamily: 'Poppins'),
               ),
               const SizedBox(height: 40),
-              Text('Username / NIM', style: TextStyle(color: textColor)),
+
+              Text('Username / NIM', style: TextStyle(color: textColor, fontFamily: 'Poppins')),
               const SizedBox(height: 8),
+
               TextField(
                 controller: _controller.usernameController,
                 decoration: InputDecoration(
@@ -55,15 +102,14 @@ class _LoginViewState extends State<LoginView> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  suffixIcon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Colors.black,
-                  ),
+                  suffixIcon: const Icon(Icons.keyboard_arrow_down, color: Colors.black),
                 ),
               ),
               const SizedBox(height: 20),
-              Text('Password', style: TextStyle(color: textColor)),
+
+              Text('Password', style: TextStyle(color: textColor, fontFamily: 'Poppins')),
               const SizedBox(height: 8),
+              
               ListenableBuilder(
                 listenable: _controller,
                 builder: (context, child) {
@@ -79,12 +125,7 @@ class _LoginViewState extends State<LoginView> {
                         borderSide: BorderSide.none,
                       ),
                       suffixIcon: IconButton(
-                        icon: Icon(
-                          _controller.isPasswordObscured
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: Colors.grey,
-                        ),
+                        icon: Icon(_controller.isPasswordObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey),
                         onPressed: _controller.togglePasswordVisibility,
                       ),
                     ),
@@ -92,26 +133,18 @@ class _LoginViewState extends State<LoginView> {
                 },
               ),
               const SizedBox(height: 12),
+              
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ForgotPasswordView(),
-                      ),
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordView()));
                   },
-                  child: Text(
-                    'Forgot password?',
-                    style: TextStyle(color: textColor),
-                  ),
+                  child: Text('Forgot password?', style: TextStyle(color: textColor, fontFamily: 'Poppins')),
                 ),
               ),
               const SizedBox(height: 30),
 
-              // PASTIKAN TOMBOL INI DIBUNGKUS BUILDER
               SizedBox(
                 width: double.infinity,
                 child: Builder(
@@ -124,13 +157,17 @@ class _LoginViewState extends State<LoginView> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () => _controller.login(newContext),
+                      onPressed: () {
+                        // Kirim method _showLoginSuccessDialog sebagai callback
+                        _controller.login(newContext, _showLoginSuccessDialog);
+                      },
                       child: const Text(
                         'Log in',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
+                          fontFamily: 'Poppins',
                         ),
                       ),
                     );

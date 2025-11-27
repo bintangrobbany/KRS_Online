@@ -3,150 +3,98 @@
 import 'package:flutter/material.dart';
 import '../controllers/forgot_password_controller.dart';
 
-class ForgotPasswordView extends StatefulWidget {
+class ForgotPasswordView extends StatelessWidget {
   const ForgotPasswordView({super.key});
 
   @override
-  State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
-}
-
-class _ForgotPasswordViewState extends State<ForgotPasswordView> {
-  final ForgotPasswordController _controller = ForgotPasswordController();
-
-  // Definisikan warna sesuai permintaan Anda
-  final Color backgroundColor = const Color(0xFFF0EBE3);
-  final Color primaryColor = const Color(0xFF006A4E);
-  final Color textColor = const Color(
-    0xFF333333,
-  ); // Warna teks yang lebih lembut
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final ForgotPasswordController controller = ForgotPasswordController();
+
+    // --- PALET WARNA (Sesuai tema Anda) ---
+    final Color bgCanvas = const Color(0xFFE8DFCD);
+    final Color primaryGreen = const Color(0xFF054F40);
+    final Color textDark = const Color(0xFF1A1A1A);
+    final Color textGrey = const Color(0xFF888888);
+
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Tombol Kembali (Back Button)
-              Container(
-                decoration: BoxDecoration(
-                  color: primaryColor,
+      backgroundColor: bgCanvas,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: primaryGreen),
+          onPressed: () => controller.goBack(context),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Ikon Besar yang Menarik
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryGreen.withOpacity(0.1),
+              ),
+              child: Icon(
+                Icons.support_agent_outlined,
+                color: primaryGreen,
+                size: 80,
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // 2. Judul
+            Text(
+              'Lupa Password?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: textDark,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 3. Deskripsi
+            Text(
+              'Jangan khawatir! Silakan hubungi admin akademik untuk mendapatkan bantuan reset password Anda.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: textGrey,
+                height: 1.5, // Jarak antar baris
+              ),
+            ),
+            const Spacer(),
+
+            // 4. Tombol Aksi "Chat Admin"
+            ElevatedButton.icon(
+              onPressed: () => controller.launchWhatsApp(context),
+              icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+              label: const Text(
+                'Chat Admin via WhatsApp',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => _controller.goBack(context),
-                ),
+                elevation: 4,
+                shadowColor: primaryGreen.withOpacity(0.4),
               ),
-              const SizedBox(height: 30),
-
-              // Judul
-              Text(
-                'Forgot password ?',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Subjudul Deskripsi
-              Text(
-                'Don\'t worry! It happens. Please enter the email associated with your account.',
-                style: TextStyle(
-                  color: textColor.withOpacity(0.7),
-                  fontSize: 16,
-                  height: 1.5, // Jarak antar baris
-                  fontFamily: 'Poppins',
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              // Label Email
-              Text(
-                'Email address',
-                style: TextStyle(color: textColor, fontFamily: 'Poppins'),
-              ),
-              const SizedBox(height: 8),
-
-              // TextField Email
-              TextField(
-                controller: _controller.emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: 'Enter your email address',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Tombol "Send code"
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () => _controller.sendCode(context),
-                  child: const Text(
-                    'Send code',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(), // Mendorong widget berikutnya ke bawah
-              // Teks "Remember password? Log in" di bawah
-              Align(
-                alignment: Alignment.center,
-                child: TextButton(
-                  onPressed: () => _controller.goBack(context),
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: Colors.grey[600],
-                      ),
-                      children: [
-                        const TextSpan(text: 'Remember password? '),
-                        TextSpan(
-                          text: 'Log in',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );

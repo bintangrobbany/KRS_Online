@@ -205,52 +205,56 @@ class _ProfileViewState extends State<ProfileView> {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        _buildStatCard("45", "Sisa SKS"),
+        // Gunakan Expanded agar setiap kartu memiliki LEBAR yang sama
+        Expanded(child: _buildStatCard("24", "Sisa SKS")),
         const SizedBox(width: 12),
-        _buildStatCard("200", "Total SKS"),
+        Expanded(child: _buildStatCard("144", "Total SKS")),
         const SizedBox(width: 12),
-        _buildStatCard("216", "Total Mata\nKuliah"),
+        Expanded(child: _buildStatCard("20", "Total Mata\nKuliah")),
       ],
     );
   }
 
   Widget _buildStatCard(String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-        decoration: BoxDecoration(
-          color: primaryGreen,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: primaryGreen.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+    // Hapus 'Expanded' dari sini, karena sudah ada di _buildStatsRow
+    return Container(
+      // --- TAMBAHKAN TINGGI YANG KONSISTEN DI SINI ---
+      height: 95, // Anda bisa menyesuaikan angka ini
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        // Pusatkan konten secara vertikal
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textWhite,
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: textWhite,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: textWhite.withOpacity(0.9),
+              height: 1.2,
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: textWhite.withOpacity(0.9),
-                height: 1.2,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
