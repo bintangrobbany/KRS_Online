@@ -9,7 +9,8 @@ import 'settings_view.dart';
 import 'form_krs_view.dart';
 import 'review_kelas_view.dart';
 import 'grid_jadwal_view.dart';
-import 'saved_classes_view.dart'; // <-- 1. IMPORT PENTING
+import 'saved_classes_view.dart';
+import 'notifikasi_view.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -206,7 +207,7 @@ class _HomeViewState extends State<HomeView> {
           ),
           const SizedBox(width: 10),
 
-          // TOMBOL 2: Daftar Kelas
+          // TOMBOL 2: Review Kelas
           SizedBox(
             width: 120,
             child: ElevatedButton(
@@ -420,7 +421,7 @@ class _HomeViewState extends State<HomeView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Daftar Kelas',
+                  'Review Kelas',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Row(
@@ -520,7 +521,13 @@ class _HomeViewState extends State<HomeView> {
         children: [
           IconButton(
             icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              // Navigasi ke halaman NotifikasiView
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotifikasiView()),
+              );
+            },
           ),
           // --- TOMBOL SAVES YANG DIPERBAIKI ---
           IconButton(
@@ -528,7 +535,9 @@ class _HomeViewState extends State<HomeView> {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SavedClassesView()),
+                MaterialPageRoute(
+                  builder: (context) => const SavedClassesView(),
+                ),
               );
             },
           ),

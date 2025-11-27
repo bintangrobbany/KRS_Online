@@ -10,9 +10,9 @@ class LoginController extends ChangeNotifier {
   final TextEditingController passwordController = TextEditingController();
 
   // --- Syarat Login ---
-  final String requiredNimPrefix = '202210370311';
-  final int requiredNimLength = 15;
-  final int minPasswordLength = 8;
+  final String requiredNimPrefix = '';
+  final int requiredNimLength = 1;
+  final int minPasswordLength = 1;
 
   bool get isPasswordObscured => _model.isPasswordObscured;
 
@@ -34,7 +34,7 @@ class LoginController extends ChangeNotifier {
       _showError(context, "NIM dan Password tidak boleh kosong");
       return; // Hentikan eksekusi
     }
-    
+
     // 2. Cek apakah NIM berisi huruf/simbol
     if (int.tryParse(username) == null) {
       _showError(context, "NIM harus berupa angka");
@@ -52,13 +52,13 @@ class LoginController extends ChangeNotifier {
       _showError(context, "NIM harus terdiri dari 15 digit");
       return;
     }
-    
+
     // 5. Cek panjang password
     if (password.length < minPasswordLength) {
       _showError(context, "Password minimal harus 8 karakter");
       return;
     }
-    
+
     // --- JIKA SEMUA VALIDASI LOLOS ---
     print("Validasi berhasil! Menampilkan dialog sukses...");
 
@@ -85,10 +85,7 @@ class LoginController extends ChangeNotifier {
   /// Helper untuk menampilkan notifikasi error (SnackBar) agar tidak duplikasi kode.
   void _showError(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
