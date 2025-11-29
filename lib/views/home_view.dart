@@ -1,8 +1,10 @@
+// File: views/home_view.dart
+
 import 'package:flutter/material.dart';
 import '../controllers/home_controller.dart';
-// import '../models/home_model.dart'; // (Opsional: Tidak wajib jika tidak dipakai langsung)
+// import '../models/home_model.dart';
 
-// --- IMPORT HALAMAN LAIN ---
+// --- IMPORT HALAMAN LAIN (Path relatif tetap sama, karena masih di folder views/) ---
 import 'daftar_kelas_view.dart';
 import 'profile_view.dart';
 import 'settings_view.dart';
@@ -47,34 +49,25 @@ class _HomeViewState extends State<HomeView> {
             children: [
               _buildTopHeader(),
               const SizedBox(height: 16),
-
-              // 1. Profile Card
               _buildProfileCard(context),
               const SizedBox(height: 24),
-
-              // 2. Action Buttons (Menu Tombol Geser)
               _buildActionButtons(context),
               const SizedBox(height: 24),
-
-              // 3. Grid Jadwal Card
               _buildGridJadwalCard(context),
               const SizedBox(height: 24),
-
-              // 4. Card Daftar Kelas (List Bawah)
               _buildDaftarKelasCard(),
-
               const SizedBox(height: 40),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
+      // bottomNavigationBar dihapus dari sini!
     );
   }
 
-  // --- WIDGET BUILDERS ---
-
+  // --- SEMUA WIDGET BUILDERS LAINNYA TETAP SAMA ---
   Widget _buildTopHeader() {
+    // ... (Isi widget)
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -91,7 +84,16 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  // ... (Widget _buildProfileCard, _buildActionButtons, dll. dihilangkan untuk ringkasan)
+
+  // CATATAN: HAPUS FUNGSI _buildBottomNavBar() SELURUHNYA DARI FILE INI
+  // Widget _buildBottomNavBar(BuildContext context) { ... } <- HAPUS INI
+
+  // ... (Lanjutkan dengan semua widget builders lainnya seperti _buildProfileCard, _buildActionButtons, dll.)
+  // (Pastikan semua widget builders yang tersisa ada di dalam file)
+
   Widget _buildProfileCard(BuildContext context) {
+    // ... isi _buildProfileCard
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -125,7 +127,6 @@ class _HomeViewState extends State<HomeView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 8),
                   Text(
                     _controller.model.studentName,
                     style: TextStyle(
@@ -170,7 +171,9 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  // ... (Semua widget builders lainnya)
   Widget _buildActionButtons(BuildContext context) {
+    // ... isi _buildActionButtons
     ButtonStyle getStyle(Color bgColor) {
       return ElevatedButton.styleFrom(
         backgroundColor: bgColor,
@@ -188,7 +191,6 @@ class _HomeViewState extends State<HomeView> {
       clipBehavior: Clip.none,
       child: Row(
         children: [
-          // TOMBOL 1: Form KRS
           SizedBox(
             width: 120,
             child: ElevatedButton(
@@ -206,8 +208,6 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
           const SizedBox(width: 10),
-
-          // TOMBOL 2: Review Kelas
           SizedBox(
             width: 120,
             child: ElevatedButton(
@@ -227,8 +227,6 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
           const SizedBox(width: 10),
-
-          // TOMBOL 3: Grid Jadwal
           SizedBox(
             width: 120,
             child: ElevatedButton(
@@ -248,8 +246,6 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
           const SizedBox(width: 10),
-
-          // TOMBOL 4: Review Kelas
           SizedBox(
             width: 120,
             child: ElevatedButton(
@@ -274,6 +270,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildGridJadwalCard(BuildContext context) {
+    // ... isi _buildGridJadwalCard
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -344,6 +341,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildTimelineGrid() {
+    // ... isi _buildTimelineGrid
     Widget dayHeader(String txt) => Expanded(
       child: Center(
         child: Text(
@@ -393,6 +391,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildDaftarKelasCard() {
+    // ... isi _buildDaftarKelasCard
     final myClasses = _controller.myKrsList;
     return GestureDetector(
       onTap: () {
@@ -466,6 +465,7 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildReviewItem(String title, String subtitle, String status) {
+    // ... isi _buildReviewItem
     bool isWaiting = status == "Waiting List";
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
@@ -505,65 +505,6 @@ class _HomeViewState extends State<HomeView> {
                 color: isWaiting ? warningYellow : primaryGreen,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- REVISI DI SINI ---
-  Widget _buildBottomNavBar(BuildContext context) {
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(color: primaryGreen),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
-            onPressed: () {
-              // Navigasi ke halaman NotifikasiView
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NotifikasiView()),
-              );
-            },
-          ),
-          // --- TOMBOL SAVES YANG DIPERBAIKI ---
-          IconButton(
-            icon: const Icon(Icons.bookmark_border, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SavedClassesView(),
-                ),
-              );
-            },
-          ),
-          // ------------------------------------
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: bgCanvas, shape: BoxShape.circle),
-            child: Icon(Icons.home_outlined, color: primaryGreen, size: 28),
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileView()),
-              ).then((_) => _refreshData());
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.white),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsView()),
-              );
-            },
           ),
         ],
       ),
