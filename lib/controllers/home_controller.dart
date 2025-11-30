@@ -60,7 +60,25 @@ class HomeController extends ChangeNotifier {
     return myKrsList.fold(0, (sum, course) => sum + (course['sks'] as int));
   }
 
-  // --- FUNGSI MANIPULASI DATA ---
+  // Fungsi BARU untuk menambahkan kelas dengan status Aktif
+  void addActiveKrs(String name, String schedule, int sks, String day) {
+    // Cek apakah kelas sudah ada di daftar
+    bool exists = myKrsList.any(
+      (item) => item['name'] == name && item['status'] == 'Aktif',
+    );
+
+    if (!exists) {
+      myKrsList.add({
+        "name": name,
+        "time": schedule,
+        "sks": sks,
+        "status": "Aktif", // Status diatur menjadi Aktif
+        "day": day,
+      });
+      notifyListeners();
+    }
+  }
+
   void addWaitingList(String name, String schedule, int sks, String day) {
     myKrsList.add({
       "name": name,

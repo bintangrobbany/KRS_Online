@@ -1,5 +1,13 @@
+// File: lib/views/daftar_kelas_view.dart
+
 import 'package:flutter/material.dart';
 import '../controllers/home_controller.dart';
+// ... (Import NavBar views lainnya)
+import 'notifikasi_view.dart';
+import 'saved_classes_view.dart';
+import 'home_view.dart';
+import 'profile_view.dart';
+import 'settings_view.dart';
 
 class DaftarKelasView extends StatefulWidget {
   const DaftarKelasView({super.key});
@@ -9,7 +17,7 @@ class DaftarKelasView extends StatefulWidget {
 }
 
 class _DaftarKelasViewState extends State<DaftarKelasView> {
-  // --- PALET WARNA ---
+  // ... (Palet Warna dan State Filter tetap sama)
   final Color bgCanvas = const Color(0xFFE8DFCD);
   final Color primaryGreen = const Color(0xFF054F40);
   final Color cardContainerBg = const Color(0xFFFFFFFF);
@@ -18,16 +26,11 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   final Color textDark = const Color(0xFF1A1A1A);
   final Color textGrey = const Color(0xFF888888);
   final Color alertRed = const Color(0xFFD32F2F);
-  final Color warningYellow = const Color(
-    0xFFF57F17,
-  ); // Warna Kuning untuk tombol Save
+  final Color warningYellow = const Color(0xFFF57F17);
 
-  // --- STATE FILTER & SORT ---
   String _selectedSks = "Semua SKS";
   String _selectedSort = "Terbaru";
 
-  // --- DATA MASTER ---
-  // (Updated: Menambahkan properti 'isSaved')
   final List<Map<String, dynamic>> _masterClassList = [
     {
       "code": "IF320",
@@ -38,7 +41,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       "slot": 0,
       "queueCount": 12,
       "isJoined": false,
-      "isSaved": false, // Status simpan
+      "isSaved": false,
     },
     {
       "code": "IF402",
@@ -57,11 +60,11 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       "name": "Kalkulus Lanjut",
       "schedule": "07:00-10:20",
       "day": "Senin",
-      "slot": 0,
+      "slot": 5,
       "queueCount": 0,
       "isJoined": false,
       "isSaved": false,
-    },
+    }, // Slot > 0
     {
       "code": "IF350",
       "sks": 3,
@@ -84,25 +87,23 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   }
 
   void _filterAndSortClasses() {
+    // ... (Logika filter tetap sama)
     List<Map<String, dynamic>> temp = List.from(_masterClassList);
-
     if (_selectedSks != "Semua SKS") {
       int targetSks = int.parse(_selectedSks.split(' ')[0]);
       temp = temp.where((item) => item['sks'] == targetSks).toList();
     }
-
     if (_selectedSort == "Nama A-Z") {
       temp.sort((a, b) => a['name'].compareTo(b['name']));
     } else if (_selectedSort == "Slot Terbanyak") {
       temp.sort((a, b) => b['slot'].compareTo(a['slot']));
     }
-
     setState(() {
       _displayClassList = temp;
     });
   }
 
-  // --- LOGIC: JOIN QUEUE ---
+  // --- LOGIC: JOIN QUEUE / PILIH KELAS ---
   void _joinQueue(Map<String, dynamic> classData) {
     setState(() {
       classData['isJoined'] = true;
@@ -110,28 +111,55 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     });
 
     final controller = HomeController();
-    controller.addWaitingList(
-      classData['name'],
-      classData['schedule'],
-      classData['sks'],
-      classData['day'],
-    );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Berhasil masuk antrean untuk ${classData['name']}"),
-        backgroundColor: warningYellow,
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    // Perbaikan: Gunakan properti 'schedule' untuk waktu (misal: "07:00-10:20")
+    String timeSlot = classData['schedule'];
+    String dayName = classData['day'].toString().substring(
+      0,
+      3,
+    ); // Ambil 3 huruf depan (Sen, Sel, Rab)
+
+    if (classData['slot'] > 0) {
+      // KELAS AKTIF (Slot Tersedia)
+      controller.addActiveKrs(
+        classData['name'],
+        timeSlot,
+        classData['sks'],
+        dayName, // Kirim nama hari singkat
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Kelas ${classData['name']} berhasil ditambahkan ke jadwal!",
+          ),
+          backgroundColor: primaryGreen,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    } else {
+      // WAITING LIST (Slot Penuh)
+      controller.addWaitingList(
+        classData['name'],
+        timeSlot,
+        classData['sks'],
+        dayName,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Berhasil masuk antrean untuk ${classData['name']}"),
+          backgroundColor: warningYellow,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
-  // --- LOGIC: TOGGLE SAVE/BOOKMARK (BARU) ---
+  // --- LOGIC: TOGGLE SAVE/BOOKMARK (tetap sama) ---
   void _toggleSave(Map<String, dynamic> classData) {
+    // ... (Logika tetap sama)
     setState(() {
       classData['isSaved'] = !classData['isSaved'];
     });
-
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -146,6 +174,55 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     );
   }
 
+  // --- LOGIKA BOTTOM NAV BAR (tetap sama) ---
+  Widget _buildBottomNavBar(BuildContext context) {
+    // ... (Kode _buildBottomNavBar sama persis)
+    void navigateToRoot() {
+      Navigator.popUntil(context, (route) => route.isFirst);
+    }
+
+    Widget navItem(int index, IconData icon, String label) {
+      bool isHome = index == 2;
+      void onPressedAction() {
+        navigateToRoot();
+      }
+
+      if (isHome) {
+        return IconButton(
+          padding: EdgeInsets.zero,
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: bgCanvas, shape: BoxShape.circle),
+            child: Icon(Icons.home_outlined, color: primaryGreen, size: 28),
+          ),
+          onPressed: onPressedAction,
+          tooltip: label,
+        );
+      }
+      return IconButton(
+        icon: Icon(icon, color: Colors.white),
+        onPressed: onPressedAction,
+        tooltip: label,
+        iconSize: 24,
+      );
+    }
+
+    return Container(
+      height: 70,
+      decoration: BoxDecoration(color: primaryGreen),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          navItem(0, Icons.chat_bubble_outline, 'Notifikasi'),
+          navItem(1, Icons.bookmark_border, 'Saved Classes'),
+          navItem(2, Icons.home_outlined, 'Home'),
+          navItem(3, Icons.person_outline, 'Profile'),
+          navItem(4, Icons.settings_outlined, 'Settings'),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,6 +230,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       body: SafeArea(
         bottom: false,
         child: Column(
+          // ... (Isi widget tetap sama)
           children: [
             const SizedBox(height: 24),
             // --- SEARCH BAR ---
@@ -276,10 +354,11 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
           ],
         ),
       ),
+      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
-  // Helper Widget Dropdown
+  // Helper Widget Dropdown (tetap sama)
   Widget _buildFunctionalDropdown({
     required String value,
     required List<String> items,
@@ -329,8 +408,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   Widget _buildClassCard(Map<String, dynamic> data) {
     bool isFull = data['slot'] <= 0;
     bool isJoined = data['isJoined'] == true;
-    bool isSaved = data['isSaved'] == true; // Cek status saved
-    int currentQueue = data['queueCount'] ?? 0;
+    bool isSaved = data['isSaved'] == true;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -378,12 +456,10 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                   "${data['day']}, ${data['schedule']}",
                   style: TextStyle(color: textGrey, fontSize: 13),
                 ),
-                // Spacer agar text tidak tertutup tombol di bawah
                 const SizedBox(height: 40),
               ],
             ),
           ),
-
           // 2. Badge Slot (Kanan Atas)
           Positioned(
             right: 12,
@@ -420,7 +496,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                     height: 36,
                     width: 36,
                     decoration: BoxDecoration(
-                      color: warningYellow, // Warna kuning sesuai request
+                      color: warningYellow,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
@@ -438,9 +514,10 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                   ),
                 ),
 
-                // --- TOMBOL DAFTAR (Jika Kelas Penuh) ---
-                if (isFull) ...[
-                  const SizedBox(width: 8), // Jarak antar tombol
+                const SizedBox(width: 8),
+
+                if (isFull)
+                  // Tombol Daftar Antrean (Hanya jika slot 0)
                   GestureDetector(
                     onTap: isJoined ? null : () => _joinQueue(data),
                     child: Container(
@@ -448,7 +525,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                         horizontal: 16,
                         vertical: 8,
                       ),
-                      height: 36, // Tinggi disamakan dengan tombol save
+                      height: 36,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: isJoined ? Colors.grey : primaryGreen,
@@ -462,33 +539,44 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                             ),
                         ],
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isJoined)
-                            const Padding(
-                              padding: EdgeInsets.only(right: 4.0),
-                              child: Icon(
-                                Icons.hourglass_bottom_rounded,
-                                color: Colors.white,
-                                size: 12,
-                              ),
-                            ),
-                          Text(
-                            isJoined
-                                ? "Antrean #${data['queueCount']}"
-                                : "Daftar Antrean",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      child: Text(
+                        isJoined
+                            ? "Antrean #${data['queueCount']}"
+                            : "Daftar Antrean",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  // --- TOMBOL PILIH KELAS (Jika slot > 0, ikon +) ---
+                  GestureDetector(
+                    onTap: () => _joinQueue(data),
+                    child: Container(
+                      height: 36,
+                      width: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: primaryGreen,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryGreen.withOpacity(0.4),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
-                ],
               ],
             ),
           ),

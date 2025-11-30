@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import '../controllers/home_controller.dart'; // Import Controller
 
+// --- IMPORT UNTUK NAV BAR (PENTING!) ---
+import 'notifikasi_view.dart';
+import 'saved_classes_view.dart';
+import 'home_view.dart';
+import 'profile_view.dart';
+import 'settings_view.dart';
+// ----------------------------------------
+
 class ReviewKelasView extends StatefulWidget {
   const ReviewKelasView({super.key});
 
@@ -54,6 +62,61 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
     );
   }
 
+  // --- LOGIKA BOTTOM NAV BAR ---
+
+  Widget _buildBottomNavBar(BuildContext context) {
+    // Fungsi untuk navigasi kembali ke MainPageView (rute pertama)
+    void navigateToRoot() {
+      // Ini akan pop semua stack hingga ke rute pertama (MainPageView)
+      Navigator.popUntil(context, (route) => route.isFirst);
+    }
+
+    // Helper Widget untuk setiap item di Bottom Navigation Bar
+    Widget navItem(int index, IconData icon, String label) {
+      bool isHome = index == 2;
+
+      // Semua tombol NavBar pada halaman detail ini akan kembali ke Home/MainPageView
+      void onPressedAction() {
+        navigateToRoot();
+      }
+
+      if (isHome) {
+        return IconButton(
+          padding: EdgeInsets.zero,
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: bgCanvas, shape: BoxShape.circle),
+            child: Icon(Icons.home_outlined, color: primaryGreen, size: 28),
+          ),
+          onPressed: onPressedAction,
+          tooltip: label,
+        );
+      }
+
+      return IconButton(
+        icon: Icon(icon, color: Colors.white),
+        onPressed: onPressedAction,
+        tooltip: label,
+        iconSize: 24,
+      );
+    }
+
+    return Container(
+      height: 70,
+      decoration: BoxDecoration(color: primaryGreen),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          navItem(0, Icons.chat_bubble_outline, 'Notifikasi'),
+          navItem(1, Icons.bookmark_border, 'Saved Classes'),
+          navItem(2, Icons.home_outlined, 'Home'), // Tombol Home (index 2)
+          navItem(3, Icons.person_outline, 'Profile'),
+          navItem(4, Icons.settings_outlined, 'Settings'),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Ambil data LIVE dari controller
@@ -62,7 +125,8 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
     // Hitung Total SKS
     int totalSks = 0;
     for (var item in myKrsList) {
-      if (item['status'] == 'Aktif') {
+      // Asumsi 'sks' adalah int, jika tidak, mungkin perlu konversi atau pengecekan tipe
+      if (item['status'] == 'Aktif' && item['sks'] is int) {
         totalSks += (item['sks'] as int);
       }
     }
@@ -197,6 +261,8 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
           ],
         ),
       ),
+      // --- PENAMBAHAN BOTTOM NAV BAR DI SINI ---
+      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
@@ -243,7 +309,6 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
               ),
 
               // --- FITUR BARU: TOMBOL SAMPAH ---
-              // Hanya muncul jika statusnya "Waiting List"
               if (isWaiting) ...[
                 const SizedBox(width: 12),
                 GestureDetector(
