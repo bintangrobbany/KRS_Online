@@ -4,9 +4,12 @@
 
 ### 📌 Nama Aplikasi
 
-# **KRS Online**
+# **Untuk Login KRS Online**
 
-Aplikasi mobile untuk mempermudah proses pengisian Kartu Rencana Studi mahasiswa secara digital.
+Sementara :
+
+1. Sebagai Admin: Username; admin@krs.com, Password;12345678
+2. Sebagai User/Mahasiswa: Username;123456789012345(15 digit), Password;12345678 (8 angka)
 
 ---
 

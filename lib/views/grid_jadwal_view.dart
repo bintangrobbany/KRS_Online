@@ -4,14 +4,13 @@ import 'package:flutter/material.dart';
 import '../controllers/grid_jadwal_controller.dart';
 import '../models/grid_jadwal_model.dart';
 
-// --- IMPORT UNTUK NAV BAR (PENTING!) ---
-// Placeholder untuk navigasi ke View lain
+// --- IMPORT UNTUK NAV BAR ---
 import 'notifikasi_view.dart';
 import 'saved_classes_view.dart';
 import 'home_view.dart';
 import 'profile_view.dart';
 import 'settings_view.dart';
-// ----------------------------------------
+// ----------------------------
 
 class GridJadwalView extends StatefulWidget {
   const GridJadwalView({super.key});
@@ -23,36 +22,29 @@ class GridJadwalView extends StatefulWidget {
 class _GridJadwalViewState extends State<GridJadwalView> {
   // Inisialisasi Controller
   final GridJadwalController controller = GridJadwalController();
-  int _selectedIndex = 2; // Default ke 'Home'
+  int _selectedIndex = 2;
 
   // Palet Warna
-  final Color cardBg = const Color(
-    0xFFE8DFCD,
-  ); // Latar belakang kartu/canvas (krem)
-  final Color primaryGreen = const Color(0xFF054F40); // Hijau utama
-  final Color bgColor = const Color(0xFFE8DFCD); // Latar belakang Scaffold
-  final Color cardColor = const Color.fromARGB(
-    255,
-    255,
-    255,
-    255,
-  ); // Warna kartu putih
-  final Color textDark = const Color(0xFF1A1A1A); // Teks gelap
-  final Color textGrey = const Color(0xFF888888); // Teks abu-abu
+  final Color cardBg = const Color(0xFFE8DFCD);
+  final Color primaryGreen = const Color(0xFF054F40);
+  final Color bgColor = const Color(0xFFE8DFCD);
+  final Color cardColor = const Color.fromARGB(255, 255, 255, 255);
+  final Color textDark = const Color(0xFF1A1A1A);
+  final Color textGrey = const Color(0xFF888888);
 
-  // Warna blok mata kuliah yang disesuaikan
-  final Color blockColor1 = const Color(0xFFC7B1A1); // Coklat muda untuk Pemr.
-  final Color blockColor2 = const Color(0xFFEDD2AE); // Orange muda untuk Kalku.
+  // Warna blok mata kuliah
+  final Color blockColor1 = const Color(0xFFC7B1A1);
+  final Color blockColor2 = const Color(0xFFEDD2AE);
 
-  // Konstanta untuk layout grid
-  static const double _hourHeight = 60.0; // Tinggi per jam di grid
-  static const double _timeLabelWidth = 40.0; // Lebar kolom label waktu
-  static const int _startGridHour = 7; // Jam mulai grid (07:00)
-  static const int _endGridHour = 18; // Jam akhir grid (sampai 17:00 terlihat)
-  static const int _numDays = 5; // Senin - Jumat
+  // Konstanta layout
+  static const double _hourHeight = 60.0;
+  static const double _timeLabelWidth = 40.0;
+  static const double _dayColumnWidth = 70.0;
+  static const int _startGridHour = 7;
+  static const int _endGridHour = 18;
+  static const int _numDays = 5;
 
   // --- LOGIKA BOTTOM NAV BAR ---
-
   void _onNavItemSelected(int index, Widget destinationView) {
     if (index == 2) {
       Navigator.popUntil(context, (route) => route.isFirst);
@@ -75,10 +67,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
       Widget destinationView,
     ) {
       bool isHome = index == 2;
-
-      void onPressedAction() {
-        _onNavItemSelected(index, destinationView);
-      }
+      void onPressedAction() => _onNavItemSelected(index, destinationView);
 
       if (isHome) {
         return IconButton(
@@ -92,7 +81,6 @@ class _GridJadwalViewState extends State<GridJadwalView> {
           tooltip: label,
         );
       }
-
       return IconButton(
         icon: Icon(icon, color: Colors.white),
         onPressed: onPressedAction,
@@ -127,9 +115,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
     );
   }
 
-  // --- WIDGET UNTUK BLOK MATA KULIAH (GRID JADWAL) ---
-
-  // Konversi nama hari menjadi indeks kolom (0=Senin, 1=Selasa, dst)
+  // --- WIDGET HELPER GRID ---
   int _dayToIndex(String day) {
     switch (day) {
       case 'Senin':
@@ -147,28 +133,26 @@ class _GridJadwalViewState extends State<GridJadwalView> {
     }
   }
 
-  // Menghitung posisi dan tinggi blok mata kuliah di grid
   Widget _buildCourseBlock(Course course) {
     final int startHour = int.parse(course.startTime.split(':')[0]);
     final int startMinute = int.parse(course.startTime.split(':')[1]);
     final int endHour = int.parse(course.endTime.split(':')[0]);
     final int endMinute = int.parse(course.endTime.split(':')[1]);
 
-    // Posisi Y (top) relatif terhadap awal grid (07:00)
     final double topOffset =
+        30.0 +
         (startHour - _startGridHour) * _hourHeight +
         (startMinute / 60.0) * _hourHeight;
 
-    // Tinggi blok berdasarkan durasi
+    // Tinggi Blok
     final double durationHours =
         (endHour - startHour) + (endMinute - startMinute) / 60.0;
     final double blockHeight = durationHours * _hourHeight;
 
-    // Posisi X (left) berdasarkan hari
+    //Posisi X (left) berdasarkan index hari
     final int dayIndex = _dayToIndex(course.day);
     if (dayIndex == -1) return Container();
 
-    // Hitungan Lebar Kolom
     final double totalHorizontalPadding = 40.0;
     final double gridContentWidth =
         MediaQuery.of(context).size.width -
@@ -181,19 +165,16 @@ class _GridJadwalViewState extends State<GridJadwalView> {
         : blockColor2;
 
     return Positioned(
-      top: topOffset + 10, // Tambahkan offset 10px untuk header hari
-      left: _timeLabelWidth + (dayIndex * dayColumnWidth),
-      width: dayColumnWidth - 2, // Sedikit kurang untuk spacing antar block
+      top: topOffset + 10,
+      left: dayIndex * _dayColumnWidth,
+      width: _dayColumnWidth - 4,
       height: blockHeight - 2,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 1),
         decoration: BoxDecoration(
           color: courseBlockColor,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: textDark.withOpacity(0.1),
-            width: 0.5,
-          ), // Border tipis
+          border: Border.all(color: textDark.withOpacity(0.1), width: 0.5),
         ),
         child: Padding(
           padding: const EdgeInsets.all(2.0),
@@ -201,7 +182,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${course.name.substring(0, 4)}..', // Inisial (Pemr.., Kalku..)
+                '${course.name.substring(0, 4)}..',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: textDark,
@@ -218,13 +199,6 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              Text(
-                '${course.sks} SKS',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: textDark, fontSize: 9),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
             ],
           ),
         ),
@@ -232,7 +206,6 @@ class _GridJadwalViewState extends State<GridJadwalView> {
     );
   }
 
-  // Helper untuk membangun grid jadwal
   Widget _buildTimelineGrid(Color textGrey) {
     Widget dayHeader(String txt) => Expanded(
       child: Center(
@@ -259,14 +232,13 @@ class _GridJadwalViewState extends State<GridJadwalView> {
       );
     }
 
-    // Buat daftar baris waktu (7:00 hingga 17:00)
     final int numHours = _endGridHour - _startGridHour;
     final List<Widget> timeLines = [];
     for (int i = 0; i < numHours; i++) {
       int hour = _startGridHour + i;
       timeLines.add(
         SizedBox(
-          height: _hourHeight, // Tinggi untuk setiap jam
+          height: _hourHeight,
           child: timeRow('${hour.toString().padLeft(2, '0')}:00'),
         ),
       );
@@ -274,12 +246,11 @@ class _GridJadwalViewState extends State<GridJadwalView> {
 
     return Stack(
       children: [
-        // 1. Grid Garis Waktu dan Header Hari
         Column(
           children: [
             Row(
               children: [
-                const SizedBox(width: _timeLabelWidth), // Kolom Waktu
+                const SizedBox(width: _timeLabelWidth),
                 dayHeader('Sen'),
                 dayHeader('Sel'),
                 dayHeader('Rab'),
@@ -287,14 +258,10 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                 dayHeader('Jum'),
               ],
             ),
-            const SizedBox(
-              height: 10,
-            ), // Jarak antara header hari dan garis waktu pertama
+            const SizedBox(height: 10),
             ...timeLines,
           ],
         ),
-
-        // 2. Blok Mata Kuliah (ditumpuk di atas grid)
         ...controller.takenCourses
             .map((course) => _buildCourseBlock(course))
             .toList(),
@@ -302,8 +269,8 @@ class _GridJadwalViewState extends State<GridJadwalView> {
     );
   }
 
-  // --- WIDGET UNTUK DAFTAR MATA KULIAH DI BAWAH GRID ---
-  Widget _buildCourseList() {
+  // --- 1. DAFTAR MATA KULIAH YANG DI-AMBIL (DELETE) ---
+  Widget _buildTakenCourseList() {
     if (controller.takenCourses.isEmpty) {
       return Center(
         child: Text(
@@ -318,7 +285,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
         return Card(
           elevation: 0,
           margin: const EdgeInsets.only(bottom: 12),
-          color: cardColor, // Menggunakan warna putih sesuai permintaan
+          color: cardColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -351,12 +318,91 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                   ),
                 ),
                 IconButton(
-                  // Ikon tempat sampah berwarna merah
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
                   onPressed: () {
-                    // Implementasi penghapusan
                     setState(() {
                       controller.removeCourse(course);
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // --- 2. FITUR BARU: DAFTAR MATA KULIAH TERSEDIA (ADD) ---
+  Widget _buildAvailableCourseList() {
+    // Pastikan controller Anda memiliki list 'availableCourses'
+    if (controller.availableCourses.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Text(
+          "- Tidak ada kelas tersedia -",
+          style: TextStyle(color: textGrey),
+        ),
+      );
+    }
+
+    return Column(
+      children: controller.availableCourses.map((course) {
+        return Card(
+          elevation: 0,
+          margin: const EdgeInsets.only(bottom: 12),
+          color: cardColor, // Menggunakan style putih agar konsisten
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 12.0,
+              horizontal: 16.0,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        course.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: textDark,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${course.code} - ${course.sks} SKS',
+                        style: TextStyle(color: textGrey, fontSize: 14),
+                      ),
+                      // Menampilkan info waktu di list tersedia agar user tahu jadwalnya
+                      Text(
+                        '${course.day}, ${course.startTime} - ${course.endTime}',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  // Icon Tambah (Plus) berwarna hijau
+                  icon: Icon(
+                    Icons.add_circle_outline,
+                    color: primaryGreen,
+                    size: 28,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      // Pastikan method addCourse ada di controller
+                      controller.addCourse(course);
                     });
                   },
                 ),
@@ -404,7 +450,6 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  // Menggunakan getter totalSks
                   Text(
                     'SKS yang diambil : ${controller.totalSks}',
                     style: TextStyle(color: textGrey, fontSize: 14),
@@ -429,15 +474,15 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _buildTimelineGrid(textGrey), // Helper widget untuk grid
+                  _buildTimelineGrid(textGrey),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // --- SEKSI KELAS YANG DIAMBIL ---
+            // --- SECTION 1: KELAS YANG DIAMBIL ---
             Text(
-              'Kelas Yang di ambil (${controller.takenCourses.length})',
+              'Kelas Yang diambil (${controller.takenCourses.length})',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -445,12 +490,26 @@ class _GridJadwalViewState extends State<GridJadwalView> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildCourseList(),
-            const SizedBox(height: 20),
+            _buildTakenCourseList(),
+
+            const SizedBox(height: 24),
+
+            // --- SECTION 2: KELAS YANG TERSEDIA (FITUR TAMBAHAN) ---
+            Text(
+              'Kelas yang Tersedia (${controller.availableCourses.length})',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: textDark,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildAvailableCourseList(), // Widget baru ditambahkan di sini
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
-      // --- PENAMBAHAN BOTTOM NAV BAR DI SINI ---
       bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
