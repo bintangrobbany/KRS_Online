@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 // Import semua Halaman utama dari folder views/
+// Pastikan nama file sesuai dengan yang ada di project Anda
 import 'views/home_view.dart';
 import 'views/notifikasi_view.dart';
 import 'views/saved_classes_view.dart';
@@ -15,16 +16,17 @@ class MainPageView extends StatefulWidget {
 }
 
 class _MainPageViewState extends State<MainPageView> {
-  // Index halaman yang sedang aktif: 0 (Notifikasi) sampai 4 (Settings)
-  int _selectedIndex = 2; // Default ke Home
+  // Index halaman yang sedang aktif. 
+  // Default kita set ke 2 agar saat aplikasi dibuka langsung ke Home (Tengah).
+  int _selectedIndex = 2; 
 
-  // Daftar halaman (Views) yang diakses melalui NavBar
+  // Daftar halaman (Views) harus urut sesuai dengan urutan tombol di bawah (0 sampai 4)
   final List<Widget> _pages = [
-    const NotifikasiView(),
-    const SavedClassesView(),
-    const HomeView(),
-    const ProfileView(),
-    const SettingsView(),
+    const NotifikasiView(),   // Index 0: Halaman Notifikasi
+    const SavedClassesView(), // Index 1: Halaman Saved Classes
+    const HomeView(),         // Index 2: Halaman Home (Tengah)
+    const ProfileView(),      // Index 3: Halaman Profile
+    const SettingsView(),     // Index 4: Halaman Settings
   ];
 
   // Palet Warna
@@ -38,31 +40,43 @@ class _MainPageViewState extends State<MainPageView> {
     });
   }
 
-  // Helper Widget untuk setiap item di Bottom Navigation Bar
+  // Helper Widget untuk membuat item navigasi
   Widget _buildNavItem(int index, IconData unselectedIcon, String label) {
     final bool isSelected = index == _selectedIndex;
 
-    // Logika untuk Tombol HOME yang menonjol (index 2)
+    // KHUSUS TOMBOL HOME (Index 2 - Tengah)
+    // Dibuat berbeda agar terlihat menonjol
     if (index == 2) {
       return IconButton(
         padding: EdgeInsets.zero,
         icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: bgCanvas, shape: BoxShape.circle),
-          child: Icon(Icons.home_outlined, color: primaryGreen, size: 28),
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: bgCanvas, // Warna lingkaran background icon
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.home_outlined, 
+            color: primaryGreen, 
+            size: 30
+          ),
         ),
-        onPressed: () => _onItemTapped(index), // HOME kembali ke index 2
+        onPressed: () => _onItemTapped(index),
         tooltip: label,
       );
     }
 
-    // Logika untuk tombol lainnya
+    // TOMBOL NAVIGASI LAINNYA (Kiri & Kanan)
     return IconButton(
-      icon: Icon(unselectedIcon, color: isSelected ? bgCanvas : Colors.white),
+      icon: Icon(
+        unselectedIcon, 
+        // Jika dipilih warnanya canvas (krem), jika tidak putih
+        color: isSelected ? bgCanvas : Colors.white.withOpacity(0.7)
+      ),
       onPressed: () => _onItemTapped(index),
       tooltip: label,
-      iconSize: 24,
-      color: isSelected ? primaryGreen : Colors.white,
+      iconSize: 26,
     );
   }
 
@@ -70,19 +84,46 @@ class _MainPageViewState extends State<MainPageView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgCanvas,
-      // Body akan menampilkan halaman yang sesuai dengan index. IndexedStack menjaga state.
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      
+      // IndexedStack menjaga state halaman agar tidak reload saat pindah tab
+      body: IndexedStack(
+        index: _selectedIndex, 
+        children: _pages
+      ),
 
       bottomNavigationBar: Container(
-        height: 70,
-        decoration: BoxDecoration(color: primaryGreen),
+        height: 80, // Sedikit diperbesar agar nyaman
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: primaryGreen,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Membagi jarak sama rata
           children: [
+            // KIRI 1: Notifikasi
             _buildNavItem(0, Icons.chat_bubble_outline, 'Notifikasi'),
+            
+            // KIRI 2: Saved Classes
             _buildNavItem(1, Icons.bookmark_border, 'Saved Classes'),
-            _buildNavItem(2, Icons.home_outlined, 'Home'), // Tombol Home
+            
+            // TENGAH: Home
+            _buildNavItem(2, Icons.home_outlined, 'Home'), 
+            
+            // KANAN 1: Profile
             _buildNavItem(3, Icons.person_outline, 'Profile'),
+            
+            // KANAN 2: Settings
             _buildNavItem(4, Icons.settings_outlined, 'Settings'),
           ],
         ),
