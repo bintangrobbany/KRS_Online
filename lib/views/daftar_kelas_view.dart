@@ -6,7 +6,7 @@ import '../models/krs_model.dart';
 
 // Import Integrasi
 import 'grid_jadwal_view.dart';
-import '../models/grid_jadwal_model.dart'; 
+import '../models/grid_jadwal_model.dart'; // <--- Import Model Course (Solusi Error 1)
 
 // Import Nav Bar Items
 import 'notifikasi_view.dart';
@@ -38,7 +38,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   String _selectedSks = "Semua SKS";
   String _selectedSort = "Terbaru";
 
-  // Data Dummy Master
+  // Data Dummy Master (Data Anda sudah dikembalikan)
   final List<KelasMataKuliah> _masterClassList = [
     KelasMataKuliah(
       kodeMataKuliah: 'IF320',
@@ -88,7 +88,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   void initState() {
     super.initState();
     _krsController.setAvailableClasses(_masterClassList);
-    _filterAndSortClasses();
+    _filterAndSortClasses(); // <-- Memastikan data dimuat saat start
     _krsController.addListener(_onKrsUpdated);
   }
 
@@ -154,16 +154,12 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
       );
     }
   }
 
   // --- LOGIKA UTAMA: NAVIGASI KE GRID JADWAL ---
-  // Fungsi ini mengonversi data KRS ke data Grid
   void _navigateToGrid() {
     // 1. Ambil data KRS yang statusnya 'terdaftar'
     final enrolledKRS = _krsController.getEnrolledClasses();
@@ -171,7 +167,8 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     if (enrolledKRS.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("Pilih minimal satu kelas untuk menyusun jadwal!")),
+          content: Text("Pilih minimal satu kelas untuk menyusun jadwal!"),
+        ),
       );
       return;
     }
@@ -182,12 +179,12 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     for (var krsItem in enrolledKRS) {
       // Parsing string jadwal: "Senin, 13:00-15:30"
       try {
-        final splitComma = krsItem.jadwal.split(','); 
+        final splitComma = krsItem.jadwal.split(',');
         if (splitComma.length < 2) continue;
 
         final day = splitComma[0].trim(); // "Senin"
         final timePart = splitComma[1].trim(); // "13:00-15:30"
-        
+
         final splitTime = timePart.split('-');
         final startTime = splitTime[0].trim();
         final endTime = splitTime[1].trim();
@@ -195,20 +192,23 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
         // Cari kode MK asli dari master list (karena model Enroll mungkin tidak simpan kode)
         String code = "KODE";
         try {
-          final master = _masterClassList
-              .firstWhere((m) => m.namaMataKuliah == krsItem.namaMataKuliah);
+          final master = _masterClassList.firstWhere(
+            (m) => m.namaMataKuliah == krsItem.namaMataKuliah,
+          );
           code = master.kodeMataKuliah;
         } catch (_) {}
 
-        coursesToSend.add(Course(
-          id: krsItem.kelasId,
-          name: krsItem.namaMataKuliah,
-          code: code,
-          sks: krsItem.sks,
-          day: day,
-          startTime: startTime,
-          endTime: endTime,
-        ));
+        coursesToSend.add(
+          Course(
+            id: krsItem.kelasId,
+            name: krsItem.namaMataKuliah,
+            code: code,
+            sks: krsItem.sks,
+            day: day,
+            startTime: startTime,
+            endTime: endTime,
+          ),
+        );
       } catch (e) {
         print("Error parsing jadwal: $e");
       }
@@ -218,9 +218,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GridJadwalView(
-          incomingCourses: coursesToSend,
-        ),
+        builder: (context) => GridJadwalView(incomingCourses: coursesToSend),
       ),
     );
   }
@@ -235,15 +233,27 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     );
   }
 
-  Widget _buildBottomNavBar(BuildContext context) {
-    void navigateToRoot() {
-      Navigator.popUntil(context, (route) => route.isFirst);
+  // --- LOGIKA NAV BAR: Sudah diperbaiki untuk Routing ---
+  void _onNavItemSelected(int index, Widget destinationView) {
+    if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => destinationView), // HomeView
+      );
+    } else {
+      // Pindah ke halaman fitur lain
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => destinationView),
+      );
     }
+  }
 
-    Widget navItem(int index, IconData icon, String label) {
+  Widget _buildBottomNavBar(BuildContext context) {
+    Widget navItem(int index, IconData icon, String label, Widget dest) {
       bool isHome = index == 2;
       void onPressedAction() {
-        navigateToRoot();
+        _onNavItemSelected(index, dest);
       }
 
       if (isHome) {
@@ -272,140 +282,26 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          navItem(0, Icons.chat_bubble_outline, 'Notifikasi'),
-          navItem(1, Icons.bookmark_border, 'Saved Classes'),
-          navItem(2, Icons.home_outlined, 'Home'),
-          navItem(3, Icons.person_outline, 'Profile'),
-          navItem(4, Icons.settings_outlined, 'Settings'),
+          navItem(
+            0,
+            Icons.chat_bubble_outline,
+            'Notifikasi',
+            const NotifikasiView(),
+          ),
+          navItem(
+            1,
+            Icons.bookmark_border,
+            'Saved Classes',
+            const SavedClassesView(),
+          ),
+          navItem(2, Icons.home_outlined, 'Home', const HomeView()),
+          navItem(3, Icons.person_outline, 'Profile', const ProfileView()),
+          navItem(4, Icons.settings_outlined, 'Settings', const SettingsView()),
         ],
       ),
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgCanvas,
-      // BUTTON MELAYANG UNTUK KE GRID
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: primaryGreen,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.calendar_month),
-        label: const Text("Susun Jadwal"),
-        onPressed: _navigateToGrid,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const TextField(
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          prefixIcon: Icon(Icons.search, color: Colors.white),
-                          hintText: "Search",
-                          hintStyle: TextStyle(color: Colors.white70),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 15),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Container(
-                    height: 52,
-                    width: 52,
-                    decoration: BoxDecoration(
-                      color: primaryGreen,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.tune_rounded, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                children: [
-                  _buildFunctionalDropdown(
-                    value: _selectedSks,
-                    items: const ["Semua SKS", "3 SKS", "4 SKS"],
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedSks = val!;
-                      });
-                      _filterAndSortClasses();
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  _buildFunctionalDropdown(
-                    value: _selectedSort,
-                    items: const ["Terbaru", "Nama A-Z", "Slot Terbanyak"],
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedSort = val!;
-                      });
-                      _filterAndSortClasses();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 30, 24, 0),
-                decoration: BoxDecoration(
-                  color: cardContainerBg,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(40),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Daftar Kelas (${_displayClassList.length})",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Expanded(
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: _displayClassList.length,
-                        itemBuilder: (context, index) {
-                          return _buildClassCard(_displayClassList[index]);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNavBar(context),
-    );
-  }
+  // --- END LOGIKA NAV BAR ---
 
   Widget _buildFunctionalDropdown({
     required String value,
@@ -544,6 +440,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                       color: warningYellow,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
+                        // <-- Solusi 3: Perbaikan Typo boxBoxShadow
                         BoxShadow(
                           color: warningYellow.withOpacity(0.4),
                           blurRadius: 4,
@@ -572,6 +469,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                       color: isAlreadyEnrolled ? Colors.grey : primaryGreen,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
+                        // <-- Solusi 3: Perbaikan Typo boxBoxShadow
                         if (!isAlreadyEnrolled)
                           BoxShadow(
                             color: primaryGreen.withOpacity(0.4),
@@ -584,10 +482,10 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                       isEnrolled
                           ? "Terdaftar"
                           : isQueued
-                              ? "Dalam Antrean"
-                              : kelas.isFull
-                                  ? "Daftar Antrean"
-                                  : "Daftar",
+                          ? "Dalam Antrean"
+                          : kelas.isFull
+                          ? "Daftar Antrean"
+                          : "Daftar",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -601,6 +499,131 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: bgCanvas,
+      // BUTTON MELAYANG UNTUK KE GRID
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: primaryGreen,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.calendar_month),
+        label: const Text("Susun Jadwal"),
+        onPressed: _navigateToGrid,
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: primaryGreen,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const TextField(
+                        style: TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          prefixIcon: Icon(Icons.search, color: Colors.white),
+                          hintText: "Search",
+                          hintStyle: TextStyle(color: Colors.white70),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 15),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Container(
+                    height: 52,
+                    width: 52,
+                    decoration: BoxDecoration(
+                      color: primaryGreen,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.tune_rounded, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Row(
+                children: [
+                  _buildFunctionalDropdown(
+                    value: _selectedSks,
+                    items: const ["Semua SKS", "3 SKS", "4 SKS"],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSks = val!;
+                      });
+                      _filterAndSortClasses();
+                    },
+                  ),
+                  const SizedBox(width: 12),
+                  _buildFunctionalDropdown(
+                    value: _selectedSort,
+                    items: const ["Terbaru", "Nama A-Z", "Slot Terbanyak"],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSort = val!;
+                      });
+                      _filterAndSortClasses();
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 30, 24, 0),
+                decoration: BoxDecoration(
+                  color: cardContainerBg,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(40),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Daftar Kelas (${_displayClassList.length})",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: _displayClassList.length,
+                        itemBuilder: (context, index) {
+                          return _buildClassCard(_displayClassList[index]);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 }

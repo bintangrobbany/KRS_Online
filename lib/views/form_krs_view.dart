@@ -195,7 +195,8 @@ class _FormKrsViewState extends State<FormKrsView> {
 
         if (mounted) {
           Navigator.pop(context);
-          Navigator.popUntil(context, (route) => route.isFirst);
+          // Tombol simpan selesai, kembali ke Home/Main Page
+          Navigator.pop(context);
         }
       } catch (e) {
         await _showFailureDialog("Gagal menambah kelas: $e");
@@ -207,15 +208,27 @@ class _FormKrsViewState extends State<FormKrsView> {
     }
   }
 
-  Widget _buildBottomNavBar(BuildContext context) {
-    void navigateToRoot() {
-      Navigator.popUntil(context, (route) => route.isFirst);
+  // --- START PERBAIKAN NAV BAR ---
+  void _onNavItemSelected(int index, Widget destinationView) {
+    if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => destinationView), // HomeView
+      );
+    } else {
+      // Pindah ke halaman fitur lain
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => destinationView),
+      );
     }
+  }
 
-    Widget navItem(int index, IconData icon, String label) {
+  Widget _buildBottomNavBar(BuildContext context) {
+    Widget navItem(int index, IconData icon, String label, Widget dest) {
       bool isHome = index == 2;
       void onPressedAction() {
-        navigateToRoot();
+        _onNavItemSelected(index, dest);
       }
 
       if (isHome) {
@@ -245,13 +258,63 @@ class _FormKrsViewState extends State<FormKrsView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          navItem(0, Icons.chat_bubble_outline, 'Notifikasi'),
-          navItem(1, Icons.bookmark_border, 'Saved Classes'),
-          navItem(2, Icons.home_outlined, 'Home'),
-          navItem(3, Icons.person_outline, 'Profile'),
-          navItem(4, Icons.settings_outlined, 'Settings'),
+          navItem(
+            0,
+            Icons.chat_bubble_outline,
+            'Notifikasi',
+            const NotifikasiView(),
+          ),
+          navItem(
+            1,
+            Icons.bookmark_border,
+            'Saved Classes',
+            const SavedClassesView(),
+          ),
+          navItem(2, Icons.home_outlined, 'Home', const HomeView()),
+          navItem(3, Icons.person_outline, 'Profile', const ProfileView()),
+          navItem(4, Icons.settings_outlined, 'Settings', const SettingsView()),
         ],
       ),
+    );
+  }
+  // --- END PERBAIKAN NAV BAR ---
+
+  Widget _buildFormField({
+    required String label,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.text,
+    String? hintText,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: textDark,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          validator: validator,
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: TextStyle(color: Colors.grey.shade400),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -435,45 +498,6 @@ class _FormKrsViewState extends State<FormKrsView> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(context),
-    );
-  }
-
-  Widget _buildFormField({
-    required String label,
-    required TextEditingController controller,
-    TextInputType keyboardType = TextInputType.text,
-    String? hintText,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: textDark,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: TextStyle(color: Colors.grey.shade400),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

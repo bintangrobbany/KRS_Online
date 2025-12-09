@@ -84,15 +84,27 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
     );
   }
 
-  Widget _buildBottomNavBar(BuildContext context) {
-    void navigateToRoot() {
-      Navigator.popUntil(context, (route) => route.isFirst);
+  // --- START PERBAIKAN NAV BAR ---
+  void _onNavItemSelected(int index, Widget destinationView) {
+    if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => destinationView), // HomeView
+      );
+    } else {
+      // Pindah ke halaman fitur lain
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => destinationView),
+      );
     }
+  }
 
-    Widget navItem(int index, IconData icon, String label) {
+  Widget _buildBottomNavBar(BuildContext context) {
+    Widget navItem(int index, IconData icon, String label, Widget dest) {
       bool isHome = index == 2;
       void onPressedAction() {
-        navigateToRoot();
+        _onNavItemSelected(index, dest);
       }
 
       if (isHome) {
@@ -122,11 +134,83 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          navItem(0, Icons.chat_bubble_outline, 'Notifikasi'),
-          navItem(1, Icons.bookmark_border, 'Saved Classes'),
-          navItem(2, Icons.home_outlined, 'Home'),
-          navItem(3, Icons.person_outline, 'Profile'),
-          navItem(4, Icons.settings_outlined, 'Settings'),
+          navItem(
+            0,
+            Icons.chat_bubble_outline,
+            'Notifikasi',
+            const NotifikasiView(),
+          ),
+          navItem(
+            1,
+            Icons.bookmark_border,
+            'Saved Classes',
+            const SavedClassesView(),
+          ),
+          navItem(2, Icons.home_outlined, 'Home', const HomeView()),
+          navItem(3, Icons.person_outline, 'Profile', const ProfileView()),
+          navItem(4, Icons.settings_outlined, 'Settings', const SettingsView()),
+        ],
+      ),
+    );
+  }
+  // --- END PERBAIKAN NAV BAR ---
+
+  Widget _buildKrsItem(DaftarKelasMahasiswa enrollment, int index) {
+    bool isQueued = enrollment.status == 'antrian';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  enrollment.namaMataKuliah,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "${enrollment.jadwal} / ${enrollment.sks} sks",
+                  style: TextStyle(color: textGrey, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              Text(
+                isQueued ? "Antrean" : "Terdaftar",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isQueued ? warningYellow : textDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => _deleteEnrollment(enrollment.kelasId, isQueued),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -266,67 +350,6 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(context),
-    );
-  }
-
-  Widget _buildKrsItem(DaftarKelasMahasiswa enrollment, int index) {
-    bool isQueued = enrollment.status == 'antrian';
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  enrollment.namaMataKuliah,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: textDark,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "${enrollment.jadwal} / ${enrollment.sks} sks",
-                  style: TextStyle(color: textGrey, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              Text(
-                isQueued ? "Antrean" : "Terdaftar",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: isQueued ? warningYellow : textDark,
-                ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => _deleteEnrollment(enrollment.kelasId, isQueued),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

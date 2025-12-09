@@ -1,5 +1,3 @@
-// lib/views/grid_jadwal_view.dart
-
 import 'package:flutter/material.dart';
 import '../controllers/grid_jadwal_controller.dart';
 import '../models/grid_jadwal_model.dart';
@@ -25,7 +23,7 @@ class GridJadwalView extends StatefulWidget {
 class _GridJadwalViewState extends State<GridJadwalView> {
   // Inisialisasi Controller
   final GridJadwalController controller = GridJadwalController();
-  int _selectedIndex = 2; // Default Home
+  // Tidak perlu _selectedIndex karena navigasi Bottom Nav dilakukan via push/pop
 
   // --- WARNA & STYLE ---
   final Color cardBg = const Color(0xFFE8DFCD);
@@ -59,16 +57,17 @@ class _GridJadwalViewState extends State<GridJadwalView> {
   // --- NAV BAR LOGIC ---
   void _onNavItemSelected(int index, Widget destinationView) {
     if (index == 2) {
-      Navigator.popUntil(context, (route) => route.isFirst);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => destinationView), // HomeView
+      );
     } else {
+      // Pindah ke halaman fitur lain
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => destinationView),
       );
     }
-    setState(() {
-      _selectedIndex = index;
-    });
   }
 
   Widget _buildBottomNavBar(BuildContext context) {
@@ -79,10 +78,14 @@ class _GridJadwalViewState extends State<GridJadwalView> {
         icon: isHome
             ? Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: cardBg, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(Icons.home_outlined, color: primaryGreen, size: 28),
               )
             : Icon(icon, color: Colors.white, size: 24),
+        // MEMANGGIL FUNGSI NAVIGASI BARU
         onPressed: () => _onNavItemSelected(index, dest),
         tooltip: label,
       );
@@ -94,8 +97,18 @@ class _GridJadwalViewState extends State<GridJadwalView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          navItem(0, Icons.chat_bubble_outline, 'Notifikasi', const NotifikasiView()),
-          navItem(1, Icons.bookmark_border, 'Saved Classes', const SavedClassesView()),
+          navItem(
+            0,
+            Icons.chat_bubble_outline,
+            'Notifikasi',
+            const NotifikasiView(),
+          ),
+          navItem(
+            1,
+            Icons.bookmark_border,
+            'Saved Classes',
+            const SavedClassesView(),
+          ),
           navItem(2, Icons.home_outlined, 'Home', const HomeView()),
           navItem(3, Icons.person_outline, 'Profile', const ProfileView()),
           navItem(4, Icons.settings_outlined, 'Settings', const SettingsView()),
@@ -118,7 +131,8 @@ class _GridJadwalViewState extends State<GridJadwalView> {
     final int endMinute = int.parse(course.endTime.split(':')[1]);
 
     // Hitung Posisi Y (Top)
-    final double topOffset = 30.0 +
+    final double topOffset =
+        30.0 +
         (startHour - _startGridHour) * _hourHeight +
         (startMinute / 60.0) * _hourHeight;
 
@@ -160,10 +174,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            Text(
-              course.code,
-              style: TextStyle(color: textDark, fontSize: 8),
-            ),
+            Text(course.code, style: TextStyle(color: textDark, fontSize: 8)),
           ],
         ),
       ),
@@ -172,13 +183,13 @@ class _GridJadwalViewState extends State<GridJadwalView> {
 
   Widget _buildTimelineGrid() {
     Widget dayHeader(String txt) => Expanded(
-          child: Center(
-            child: Text(
-              txt,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ),
-        );
+      child: Center(
+        child: Text(
+          txt,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        ),
+      ),
+    );
 
     // Membuat baris jam
     List<Widget> timeLines = [];
@@ -361,7 +372,9 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: primaryGreen.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -369,7 +382,9 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                         child: Text(
                           '${controller.totalSks} SKS',
                           style: TextStyle(
-                              color: primaryGreen, fontWeight: FontWeight.bold),
+                            color: primaryGreen,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
