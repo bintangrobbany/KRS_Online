@@ -1,8 +1,14 @@
-// File: lib/views/daftar_kelas_view.dart
+// lib/views/daftar_kelas_view.dart
 
 import 'package:flutter/material.dart';
-import '../controllers/home_controller.dart';
-// ... (Import NavBar views lainnya)
+import '../controllers/krs_controller.dart';
+import '../models/krs_model.dart';
+
+// Import Integrasi
+import 'grid_jadwal_view.dart';
+import '../models/grid_jadwal_model.dart'; 
+
+// Import Nav Bar Items
 import 'notifikasi_view.dart';
 import 'saved_classes_view.dart';
 import 'home_view.dart';
@@ -17,7 +23,8 @@ class DaftarKelasView extends StatefulWidget {
 }
 
 class _DaftarKelasViewState extends State<DaftarKelasView> {
-  // ... (Palet Warna dan State Filter tetap sama)
+  final KRSController _krsController = KRSController();
+
   final Color bgCanvas = const Color(0xFFE8DFCD);
   final Color primaryGreen = const Color(0xFF054F40);
   final Color cardContainerBg = const Color(0xFFFFFFFF);
@@ -31,152 +38,204 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   String _selectedSks = "Semua SKS";
   String _selectedSort = "Terbaru";
 
-  final List<Map<String, dynamic>> _masterClassList = [
-    {
-      "code": "IF320",
-      "sks": 3,
-      "name": "Pemrograman Web",
-      "schedule": "13:00-15:30",
-      "day": "Senin",
-      "slot": 0,
-      "queueCount": 12,
-      "isJoined": false,
-      "isSaved": false,
-    },
-    {
-      "code": "IF402",
-      "sks": 4,
-      "name": "Algoritma & Struktur Data",
-      "schedule": "07:00-10:20",
-      "day": "Selasa",
-      "slot": 15,
-      "queueCount": 0,
-      "isJoined": false,
-      "isSaved": false,
-    },
-    {
-      "code": "IF410",
-      "sks": 4,
-      "name": "Kalkulus Lanjut",
-      "schedule": "07:00-10:20",
-      "day": "Senin",
-      "slot": 5,
-      "queueCount": 0,
-      "isJoined": false,
-      "isSaved": false,
-    }, // Slot > 0
-    {
-      "code": "IF350",
-      "sks": 3,
-      "name": "Jaringan Komputer",
-      "schedule": "13:00-15:30",
-      "day": "Rabu",
-      "slot": 0,
-      "queueCount": 5,
-      "isJoined": false,
-      "isSaved": false,
-    },
+  // Data Dummy Master
+  final List<KelasMataKuliah> _masterClassList = [
+    KelasMataKuliah(
+      kodeMataKuliah: 'IF320',
+      namaMataKuliah: 'Pemrograman Web',
+      sks: 3,
+      dosen: 'Dr. Budi',
+      ruangan: 'R401',
+      jadwal: 'Senin, 13:00-15:30',
+      kapasitas: 30,
+      pendaftarSaat: 30,
+    ),
+    KelasMataKuliah(
+      kodeMataKuliah: 'IF402',
+      namaMataKuliah: 'Algoritma & Struktur Data',
+      sks: 4,
+      dosen: 'Prof. Ahmad',
+      ruangan: 'R402',
+      jadwal: 'Selasa, 07:00-10:20',
+      kapasitas: 40,
+      pendaftarSaat: 25,
+    ),
+    KelasMataKuliah(
+      kodeMataKuliah: 'IF410',
+      namaMataKuliah: 'Kalkulus Lanjut',
+      sks: 4,
+      dosen: 'Dr. Siti',
+      ruangan: 'R403',
+      jadwal: 'Senin, 07:00-10:20',
+      kapasitas: 35,
+      pendaftarSaat: 30,
+    ),
+    KelasMataKuliah(
+      kodeMataKuliah: 'IF350',
+      namaMataKuliah: 'Jaringan Komputer',
+      sks: 3,
+      dosen: 'Dr. Roni',
+      ruangan: 'R404',
+      jadwal: 'Rabu, 13:00-15:30',
+      kapasitas: 25,
+      pendaftarSaat: 25,
+    ),
   ];
 
-  List<Map<String, dynamic>> _displayClassList = [];
+  List<KelasMataKuliah> _displayClassList = [];
 
   @override
   void initState() {
     super.initState();
+    _krsController.setAvailableClasses(_masterClassList);
     _filterAndSortClasses();
+    _krsController.addListener(_onKrsUpdated);
+  }
+
+  @override
+  void dispose() {
+    _krsController.removeListener(_onKrsUpdated);
+    super.dispose();
+  }
+
+  void _onKrsUpdated() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   void _filterAndSortClasses() {
-    // ... (Logika filter tetap sama)
-    List<Map<String, dynamic>> temp = List.from(_masterClassList);
+    List<KelasMataKuliah> temp = List.from(_masterClassList);
+
     if (_selectedSks != "Semua SKS") {
       int targetSks = int.parse(_selectedSks.split(' ')[0]);
-      temp = temp.where((item) => item['sks'] == targetSks).toList();
+      temp = temp.where((item) => item.sks == targetSks).toList();
     }
+
     if (_selectedSort == "Nama A-Z") {
-      temp.sort((a, b) => a['name'].compareTo(b['name']));
+      temp.sort((a, b) => a.namaMataKuliah.compareTo(b.namaMataKuliah));
     } else if (_selectedSort == "Slot Terbanyak") {
-      temp.sort((a, b) => b['slot'].compareTo(a['slot']));
+      temp.sort((a, b) => b.slotsAvailable.compareTo(a.slotsAvailable));
     }
+
     setState(() {
       _displayClassList = temp;
     });
   }
 
-  // --- LOGIC: JOIN QUEUE / PILIH KELAS ---
-  void _joinQueue(Map<String, dynamic> classData) {
-    setState(() {
-      classData['isJoined'] = true;
-      classData['queueCount'] = classData['queueCount'] + 1;
-    });
+  void _enrollClass(KelasMataKuliah kelas) async {
+    final isQueue = kelas.isFull;
 
-    final controller = HomeController();
+    try {
+      final success = await _krsController.enrollClass(kelas, isQueue: isQueue);
 
-    // Perbaikan: Gunakan properti 'schedule' untuk waktu (misal: "07:00-10:20")
-    String timeSlot = classData['schedule'];
-    String dayName = classData['day'].toString().substring(
-      0,
-      3,
-    ); // Ambil 3 huruf depan (Sen, Sel, Rab)
-
-    if (classData['slot'] > 0) {
-      // KELAS AKTIF (Slot Tersedia)
-      controller.addActiveKrs(
-        classData['name'],
-        timeSlot,
-        classData['sks'],
-        dayName, // Kirim nama hari singkat
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Kelas ${classData['name']} berhasil ditambahkan ke jadwal!",
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isQueue
+                  ? "Berhasil masuk antrean untuk ${kelas.namaMataKuliah}"
+                  : "Kelas ${kelas.namaMataKuliah} berhasil didaftarkan!",
+            ),
+            backgroundColor: isQueue ? warningYellow : primaryGreen,
+            duration: const Duration(seconds: 1),
           ),
-          backgroundColor: primaryGreen,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    } else {
-      // WAITING LIST (Slot Penuh)
-      controller.addWaitingList(
-        classData['name'],
-        timeSlot,
-        classData['sks'],
-        dayName,
-      );
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Anda sudah terdaftar untuk kelas ini"),
+            backgroundColor: Colors.grey,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Berhasil masuk antrean untuk ${classData['name']}"),
-          backgroundColor: warningYellow,
-          duration: const Duration(seconds: 1),
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
         ),
       );
     }
   }
 
-  // --- LOGIC: TOGGLE SAVE/BOOKMARK (tetap sama) ---
-  void _toggleSave(Map<String, dynamic> classData) {
-    // ... (Logika tetap sama)
-    setState(() {
-      classData['isSaved'] = !classData['isSaved'];
-    });
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          classData['isSaved']
-              ? "${classData['name']} disimpan!"
-              : "${classData['name']} dihapus dari simpanan.",
+  // --- LOGIKA UTAMA: NAVIGASI KE GRID JADWAL ---
+  // Fungsi ini mengonversi data KRS ke data Grid
+  void _navigateToGrid() {
+    // 1. Ambil data KRS yang statusnya 'terdaftar'
+    final enrolledKRS = _krsController.getEnrolledClasses();
+
+    if (enrolledKRS.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Pilih minimal satu kelas untuk menyusun jadwal!")),
+      );
+      return;
+    }
+
+    // 2. Konversi ke model Course untuk Grid
+    List<Course> coursesToSend = [];
+
+    for (var krsItem in enrolledKRS) {
+      // Parsing string jadwal: "Senin, 13:00-15:30"
+      try {
+        final splitComma = krsItem.jadwal.split(','); 
+        if (splitComma.length < 2) continue;
+
+        final day = splitComma[0].trim(); // "Senin"
+        final timePart = splitComma[1].trim(); // "13:00-15:30"
+        
+        final splitTime = timePart.split('-');
+        final startTime = splitTime[0].trim();
+        final endTime = splitTime[1].trim();
+
+        // Cari kode MK asli dari master list (karena model Enroll mungkin tidak simpan kode)
+        String code = "KODE";
+        try {
+          final master = _masterClassList
+              .firstWhere((m) => m.namaMataKuliah == krsItem.namaMataKuliah);
+          code = master.kodeMataKuliah;
+        } catch (_) {}
+
+        coursesToSend.add(Course(
+          id: krsItem.kelasId,
+          name: krsItem.namaMataKuliah,
+          code: code,
+          sks: krsItem.sks,
+          day: day,
+          startTime: startTime,
+          endTime: endTime,
+        ));
+      } catch (e) {
+        print("Error parsing jadwal: $e");
+      }
+    }
+
+    // 3. Pindah Halaman & Kirim Data
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GridJadwalView(
+          incomingCourses: coursesToSend,
         ),
-        backgroundColor: classData['isSaved'] ? warningYellow : Colors.grey,
-        duration: const Duration(milliseconds: 800),
       ),
     );
   }
 
-  // --- LOGIKA BOTTOM NAV BAR (tetap sama) ---
+  void _toggleSave(KelasMataKuliah kelas) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("${kelas.namaMataKuliah} disimpan!"),
+        backgroundColor: warningYellow,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   Widget _buildBottomNavBar(BuildContext context) {
-    // ... (Kode _buildBottomNavBar sama persis)
     void navigateToRoot() {
       Navigator.popUntil(context, (route) => route.isFirst);
     }
@@ -227,13 +286,19 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgCanvas,
+      // BUTTON MELAYANG UNTUK KE GRID
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: primaryGreen,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.calendar_month),
+        label: const Text("Susun Jadwal"),
+        onPressed: _navigateToGrid,
+      ),
       body: SafeArea(
         bottom: false,
         child: Column(
-          // ... (Isi widget tetap sama)
           children: [
             const SizedBox(height: 24),
-            // --- SEARCH BAR ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Row(
@@ -271,51 +336,35 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
             const SizedBox(height: 24),
-            // --- FILTER SECTION ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    "Daftar Kelas Tersedia",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: textDark,
-                    ),
+                  _buildFunctionalDropdown(
+                    value: _selectedSks,
+                    items: const ["Semua SKS", "3 SKS", "4 SKS"],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSks = val!;
+                      });
+                      _filterAndSortClasses();
+                    },
                   ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      _buildFunctionalDropdown(
-                        value: _selectedSks,
-                        items: ["Semua SKS", "3 SKS", "4 SKS"],
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedSks = val!;
-                          });
-                          _filterAndSortClasses();
-                        },
-                      ),
-                      const SizedBox(width: 12),
-                      _buildFunctionalDropdown(
-                        value: _selectedSort,
-                        items: ["Terbaru", "Nama A-Z", "Slot Terbanyak"],
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedSort = val!;
-                          });
-                          _filterAndSortClasses();
-                        },
-                      ),
-                    ],
+                  const SizedBox(width: 12),
+                  _buildFunctionalDropdown(
+                    value: _selectedSort,
+                    items: const ["Terbaru", "Nama A-Z", "Slot Terbanyak"],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedSort = val!;
+                      });
+                      _filterAndSortClasses();
+                    },
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            // --- LIST VIEW ---
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -358,7 +407,6 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     );
   }
 
-  // Helper Widget Dropdown (tetap sama)
   Widget _buildFunctionalDropdown({
     required String value,
     required List<String> items,
@@ -404,17 +452,18 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     );
   }
 
-  // --- CARD ITEM BUILDER ---
-  Widget _buildClassCard(Map<String, dynamic> data) {
-    bool isFull = data['slot'] <= 0;
-    bool isJoined = data['isJoined'] == true;
-    bool isSaved = data['isSaved'] == true;
+  Widget _buildClassCard(KelasMataKuliah kelas) {
+    final enrolledClasses = _krsController.getEnrolledClasses();
+    final queuedClasses = _krsController.getQueuedClasses();
+
+    final isEnrolled = enrolledClasses.any((e) => e.kelasId == kelas.id);
+    final isQueued = queuedClasses.any((e) => e.kelasId == kelas.id);
+    final isAlreadyEnrolled = isEnrolled || isQueued;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       child: Stack(
         children: [
-          // 1. Content Card Utama
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -434,7 +483,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "${data['code']} - ${data['sks']} SKS",
+                  "${kelas.kodeMataKuliah} - ${kelas.sks} SKS",
                   style: TextStyle(
                     color: textGrey,
                     fontSize: 13,
@@ -443,7 +492,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  data['name'],
+                  kelas.namaMataKuliah,
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 17,
@@ -453,25 +502,24 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  "${data['day']}, ${data['schedule']}",
+                  kelas.jadwal,
                   style: TextStyle(color: textGrey, fontSize: 13),
                 ),
                 const SizedBox(height: 40),
               ],
             ),
           ),
-          // 2. Badge Slot (Kanan Atas)
           Positioned(
             right: 12,
             top: 12,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: isFull ? alertRed : primaryGreen,
+                color: kelas.isFull ? alertRed : primaryGreen,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                isFull ? "Sisa 0 Slot" : "Sisa ${data['slot']} Slot",
+                "Sisa ${kelas.slotsAvailable} Slot",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 11,
@@ -481,17 +529,14 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
               ),
             ),
           ),
-
-          // 3. Action Buttons (Kanan Bawah)
           Positioned(
             right: 12,
             bottom: 12,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // --- TOMBOL SAVE (KUNING) ---
                 GestureDetector(
-                  onTap: () => _toggleSave(data),
+                  onTap: () => _toggleSave(kelas),
                   child: Container(
                     height: 36,
                     width: 36,
@@ -506,77 +551,51 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                         ),
                       ],
                     ),
-                    child: Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
+                    child: const Icon(
+                      Icons.bookmark_border_rounded,
                       color: Colors.white,
                       size: 20,
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 8),
-
-                if (isFull)
-                  // Tombol Daftar Antrean (Hanya jika slot 0)
-                  GestureDetector(
-                    onTap: isJoined ? null : () => _joinQueue(data),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      height: 36,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isJoined ? Colors.grey : primaryGreen,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          if (!isJoined)
-                            BoxShadow(
-                              color: primaryGreen.withOpacity(0.4),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                        ],
-                      ),
-                      child: Text(
-                        isJoined
-                            ? "Antrean #${data['queueCount']}"
-                            : "Daftar Antrean",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: isAlreadyEnrolled ? null : () => _enrollClass(kelas),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                  )
-                else
-                  // --- TOMBOL PILIH KELAS (Jika slot > 0, ikon +) ---
-                  GestureDetector(
-                    onTap: () => _joinQueue(data),
-                    child: Container(
-                      height: 36,
-                      width: 36,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isAlreadyEnrolled ? Colors.grey : primaryGreen,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        if (!isAlreadyEnrolled)
                           BoxShadow(
                             color: primaryGreen.withOpacity(0.4),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
+                      ],
+                    ),
+                    child: Text(
+                      isEnrolled
+                          ? "Terdaftar"
+                          : isQueued
+                              ? "Dalam Antrean"
+                              : kelas.isFull
+                                  ? "Daftar Antrean"
+                                  : "Daftar",
+                      style: const TextStyle(
                         color: Colors.white,
-                        size: 20,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
+                ),
               ],
             ),
           ),

@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import '../models/home_model.dart';
 
 class HomeController extends ChangeNotifier {
-  // --- SINGLETON PATTERN ---
-  static final HomeController _instance = HomeController._internal();
-  factory HomeController() => _instance;
-
-  HomeController._internal() {
+  // --- CONSTRUCTOR ---
+  // Kita menggunakan constructor biasa, bukan Singleton.
+  // Ini memastikan setiap kali HomeView dibuka, controller baru dibuat
+  // dan mencegah error "ChangeNotifier disposed".
+  HomeController() {
     _model = HomeModel(
       studentName: "Edra Edogawa",
       nim: "2022103703256",
@@ -27,6 +27,7 @@ class HomeController extends ChangeNotifier {
   HomeModel get model => _model;
 
   // --- DATA KRS SAYA (SHARED DATA) ---
+  // Data dummy untuk contoh jadwal yang sudah aktif
   List<Map<String, dynamic>> myKrsList = [
     {
       "name": "Pemrograman Web",
@@ -51,18 +52,22 @@ class HomeController extends ChangeNotifier {
     },
   ];
 
+  // Getter untuk mendapatkan list kelas yang statusnya 'Aktif'
   List<Map<String, dynamic>> get approvedCoursesForSchedule {
     return myKrsList.where((course) => course['status'] == 'Aktif').toList();
   }
 
+  // Getter untuk menghitung total SKS
   int get totalSksTaken {
     if (myKrsList.isEmpty) return 0;
     return myKrsList.fold(0, (sum, course) => sum + (course['sks'] as int));
   }
 
-  // Fungsi BARU untuk menambahkan kelas dengan status Aktif
+  // --- LOGIC / ACTIONS ---
+
+  // Menambahkan kelas baru (dipanggil dari form KRS jika diperlukan)
   void addActiveKrs(String name, String schedule, int sks, String day) {
-    // Cek apakah kelas sudah ada di daftar
+    // Cek apakah kelas sudah ada agar tidak duplikat
     bool exists = myKrsList.any(
       (item) => item['name'] == name && item['status'] == 'Aktif',
     );
@@ -72,13 +77,14 @@ class HomeController extends ChangeNotifier {
         "name": name,
         "time": schedule,
         "sks": sks,
-        "status": "Aktif", // Status diatur menjadi Aktif
+        "status": "Aktif",
         "day": day,
       });
-      notifyListeners();
+      notifyListeners(); // Memberi tahu UI untuk update
     }
   }
 
+  // Menambahkan ke waiting list
   void addWaitingList(String name, String schedule, int sks, String day) {
     myKrsList.add({
       "name": name,
@@ -90,21 +96,20 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Menghapus item KRS berdasarkan index
   void removeKrsItem(int index) {
-    myKrsList.removeAt(index);
-    notifyListeners();
+    if (index >= 0 && index < myKrsList.length) {
+      myKrsList.removeAt(index);
+      notifyListeners();
+    }
   }
 
+  // Update data profil pengguna
   void updateProfile({String? phone, String? email, String? social}) {
     if (phone != null) _model.phoneNumber = phone;
     if (email != null) _model.email = email;
     if (social != null) _model.socialMedia = social;
 
-    // Memberi tahu semua 'listener' (seperti ProfileView) bahwa data telah berubah.
     notifyListeners();
   }
-
-  // --- NAVIGASI ---
-  void onFormKrsTapped() {}
-  void onGridJadwalTapped() {}
 }

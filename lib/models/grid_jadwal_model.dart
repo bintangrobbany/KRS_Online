@@ -5,9 +5,9 @@ class Course {
   final String name;
   final String code;
   final int sks;
-  final String day; // Contoh: "Senin"
+  final String day;       // Contoh: "Senin"
   final String startTime; // Contoh: "07:00"
-  final String endTime; // Contoh: "09:30"
+  final String endTime;   // Contoh: "09:30"
 
   Course({
     required this.id,
