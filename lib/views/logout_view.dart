@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'login_view.dart'; // <--- 1. WAJIB IMPORT INI
 
 class LogoutView extends StatelessWidget {
@@ -51,19 +52,26 @@ class LogoutView extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     // 2. INI LOGIKA NAVIGASINYA
                     // pushAndRemoveUntil: Menghapus semua riwayat halaman sebelumnya (Home, Profile)
                     // Jadi user tidak bisa tekan tombol 'Back' di HP
 
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginView(),
-                      ),
-                      (route) =>
-                          false, // false artinya: hapus semua rute di belakang
-                    );
+                    // Hapus data SharedPreferences saat logout
+                    final SharedPreferences prefs =
+                        await SharedPreferences.getInstance();
+                    await prefs.clear();
+
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginView(),
+                        ),
+                        (route) =>
+                            false, // false artinya: hapus semua rute di belakang
+                      );
+                    }
                   },
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: primaryGreen, width: 1.5),

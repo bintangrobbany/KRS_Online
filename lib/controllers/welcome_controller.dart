@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../views/login_view.dart';
 
 class WelcomeController {
   // Method untuk menangani event saat tombol sign in ditekan
-  void navigateToLogin(BuildContext context) {
+  Future<void> navigateToLogin(BuildContext context) async {
+    // Simpan flag bahwa welcome sudah ditampilkan
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('welcome_seen', true);
+
     // Navigasi ke LoginView yang sesungguhnya
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginView()), // <- Ganti tujuannya
-    );
+    if (context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginView(),
+        ), // <- Ganti tujuannya
+      );
+    }
   }
 }
 
@@ -20,9 +29,7 @@ class LoginPagePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Login Page")),
-      body: const Center(
-        child: Text("Ini adalah halaman login."),
-      ),
+      body: const Center(child: Text("Ini adalah halaman login.")),
     );
   }
 }

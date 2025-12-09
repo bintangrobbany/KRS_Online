@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../views/home_view.dart';
-import '../views/admin/admin_dashboard_view.dart'; // <--- JANGAN LUPA IMPORT INI
+import '../views/admin/admin_dashboard_view.dart';
 import '../models/login_model.dart';
 
 class LoginController extends ChangeNotifier {
@@ -10,7 +11,7 @@ class LoginController extends ChangeNotifier {
 
   // --- Syarat Login Mahasiswa ---
   // (Pastikan nilai ini sesuai kebutuhan, misal panjang NIM 10 atau 15)
-  final String requiredNimPrefix = '';
+  final String requiredNimPrefix = '202210370311';
   final int requiredNimLength = 15; // Contoh saya ubah ke 15 sesuai pesan error
   final int minPasswordLength = 6; // Contoh standar password
 
@@ -84,6 +85,10 @@ class LoginController extends ChangeNotifier {
     // 3. JIKA LOLOS SEMUA VALIDASI MAHASISWA
     // ---------------------------------------------------------
     print("Validasi Mahasiswa berhasil!");
+
+    // Simpan username ke SharedPreferences
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', username);
 
     // Jalankan callback dialog sukses dari View
     onSuccess();

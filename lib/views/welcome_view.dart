@@ -69,7 +69,8 @@ class WelcomeView extends StatelessWidget {
                   ),
                 ),
                 // Panggil method dari controller saat tombol ditekan
-                onPressed: () => _controller.navigateToLogin(context),
+                onPressed: () async =>
+                    await _controller.navigateToLogin(context),
                 child: const Text(
                   'Log In',
                   style: TextStyle(

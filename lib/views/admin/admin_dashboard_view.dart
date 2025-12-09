@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../models/matkul_model.dart'; // Pastikan model sudah dibuat
-import '../login_view.dart'; // Untuk navigasi logout
-import '../form_matkul_view.dart'; // Untuk pindah ke halaman form
+import 'package:shared_preferences/shared_preferences.dart';
+import '../welcome_view.dart';
+import 'admin_user_management_view.dart';
+import 'admin_matkul_management_view.dart';
 
 class AdminDashboardView extends StatefulWidget {
   const AdminDashboardView({super.key});
@@ -11,208 +12,234 @@ class AdminDashboardView extends StatefulWidget {
 }
 
 class _AdminDashboardViewState extends State<AdminDashboardView> {
-  // --- Data Dummy (Simulasi Database Lokal) ---
-  // Nanti data ini diganti dengan data dari API/Firebase
-  List<MataKuliah> listMatkul = [
-    MataKuliah(
-      kode: "TI001",
-      nama: "Algoritma Pemrograman",
-      sks: 3,
-      jadwal: "Senin, 08:00",
-    ),
-    MataKuliah(
-      kode: "TI002",
-      nama: "Basis Data",
-      sks: 4,
-      jadwal: "Selasa, 10:00",
-    ),
-    MataKuliah(
-      kode: "TI003",
-      nama: "Pemrograman Mobile",
-      sks: 3,
-      jadwal: "Rabu, 13:00",
-    ),
+  int _selectedIndex = 0;
+
+  // Daftar halaman untuk setiap menu
+  final List<Widget> _pages = [
+    const AdminUserManagementView(),
+    const AdminMatkulManagementView(),
   ];
 
-  // Fungsi untuk Menambah Data (Menerima data dari Form)
-  void _navigateToAddForm() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const FormMatkulView()),
-    );
-
-    if (result != null && result is MataKuliah) {
-      setState(() {
-        listMatkul.add(result);
-      });
-      _showSnack("Mata kuliah berhasil ditambahkan");
+  void _handleLogout() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => WelcomeView()),
+      );
     }
-  }
-
-  // Fungsi untuk Edit Data
-  void _navigateToEditForm(int index, MataKuliah matkul) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => FormMatkulView(matkulEdit: matkul),
-      ),
-    );
-
-    if (result != null && result is MataKuliah) {
-      setState(() {
-        listMatkul[index] = result;
-      });
-      _showSnack("Data berhasil diperbarui");
-    }
-  }
-
-  // Fungsi Hapus Data
-  void _deleteMatkul(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Hapus Data?"),
-        content: const Text("Data ini akan hilang permanen."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Batal"),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                listMatkul.removeAt(index);
-              });
-              Navigator.pop(context);
-              _showSnack("Data dihapus");
-            },
-            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  // Fungsi Logout
-  void _handleLogout() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginView()),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Kelola KRS (Admin)"),
-        backgroundColor: const Color(
-          0xFF006A4E,
-        ), // Warna hijau sesuai tema loginmu
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _handleLogout,
-            tooltip: "Logout",
-          ),
-        ],
-      ),
-      backgroundColor: const Color(0xFFF0EBE3),
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
-      // TAMPILAN LIST
-      body: listMatkul.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.folder_off, size: 80, color: Colors.grey),
-                  SizedBox(height: 10),
-                  Text("Belum ada Mata Kuliah yang diinput"),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0EBE3),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            // Logo/Icon KRS
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'KRS',
+                style: TextStyle(
+                  color: Color(0xFF006A4E),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'KRS Online - Admin Dashboard',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF006A4E),
+        foregroundColor: Colors.white,
+        elevation: 4,
+      ),
+      drawer: isMobile ? _buildSidebar() : null,
+      body: Row(
+        children: [
+          // Sidebar (hanya untuk desktop)
+          if (!isMobile)
+            Container(
+              width: 280,
+              decoration: BoxDecoration(
+                color: const Color(0xFF054F40),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                  ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: listMatkul.length,
-              itemBuilder: (context, index) {
-                final item = listMatkul[index];
-                return Card(
-                  elevation: 2,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Sidebar
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.admin_panel_settings,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Admin Menu',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF006A4E),
-                      child: Text(
-                        "${item.sks}",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                    const Divider(color: Colors.white24),
+                    // Menu Items
+                    ..._buildMenuItems(),
+                    const Divider(color: Colors.white24),
+                    // Logout Button
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _handleLogout,
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Logout'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade400,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
                         ),
                       ),
                     ),
-                    title: Text(
-                      item.nama,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text("Kode: ${item.kode}"),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(item.jadwal),
-                          ],
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Tombol Edit
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => _navigateToEditForm(index, item),
-                        ),
-                        // Tombol Hapus
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteMatkul(index),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ),
             ),
+          // Main Content
+          Expanded(child: _pages[_selectedIndex]),
+        ],
+      ),
+    );
+  }
 
-      // TOMBOL TAMBAH (Floating Action Button)
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _navigateToAddForm,
-        backgroundColor: const Color(0xFF006A4E),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "Tambah Matkul",
-          style: TextStyle(color: Colors.white),
+  List<Widget> _buildMenuItems() {
+    return [
+      _buildMenuItem(index: 0, icon: Icons.person, label: 'Kelola User'),
+      _buildMenuItem(index: 1, icon: Icons.book, label: 'Kelola Mata Kuliah'),
+    ];
+  }
+
+  Widget _buildMenuItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = _selectedIndex == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _selectedIndex = index),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.white.withOpacity(0.2)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: isSelected
+                ? Border(left: BorderSide(color: Colors.white, width: 4))
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : Colors.white70,
+                size: 24,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white70,
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSidebar() {
+    return Drawer(
+      backgroundColor: const Color(0xFF054F40),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF006A4E)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'KRS Online',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Admin Panel',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ..._buildMenuItems(),
+          const Divider(color: Colors.white24),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text('Logout', style: TextStyle(color: Colors.white)),
+            onTap: _handleLogout,
+          ),
+        ],
       ),
     );
   }
