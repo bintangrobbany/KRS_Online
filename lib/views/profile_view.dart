@@ -10,6 +10,7 @@ import 'logout_view.dart';
 import 'edit_profile_view.dart';
 import 'personal_information_view.dart';
 import 'saved_classes_view.dart';
+import 'ktm_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -148,6 +149,17 @@ class _ProfileViewState extends State<ProfileView> {
                   MaterialPageRoute(
                     builder: (context) => const PersonalInformationView(),
                   ),
+                );
+              },
+            ),
+            _buildMenuOption(
+              Icons.badge_outlined, // Icon kartu ID
+              "KTM Digital",
+              onTap: () {
+                // Jangan lupa import 'ktm_view.dart' di paling atas file!
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const KtmView()),
                 );
               },
             ),
