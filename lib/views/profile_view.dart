@@ -1,12 +1,15 @@
 // lib/views/profile_view.dart
 
+import 'dart:io'; // 1. WAJIB: Untuk menangani File gambar
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart'; // 2. WAJIB: Plugin Image Picker
+
 import '../controllers/home_controller.dart';
 import 'settings_view.dart';
 import 'logout_view.dart';
 import 'edit_profile_view.dart';
 import 'personal_information_view.dart';
-import 'saved_classes_view.dart'; // <-- 1. IMPORT FILE BARU
+import 'saved_classes_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -17,6 +20,10 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   final HomeController _controller = HomeController();
+
+  // --- VARIABEL UNTUK IMAGE PICKER ---
+  File? _selectedImage; // Menyimpan foto yang dipilih
+  final ImagePicker _picker = ImagePicker();
 
   // --- PALET WARNA ---
   final Color bgCanvas = const Color(0xFFE8DFCD);
@@ -37,7 +44,27 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _onProfileChanged() {
-    setState(() {});
+    if (mounted) setState(() {});
+  }
+
+  // --- FUNGSI AMBIL GAMBAR ---
+  Future<void> _pickImage() async {
+    try {
+      // Ubah source: ImageSource.camera jika ingin langsung buka kamera
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+        // Catatan: Di aplikasi nyata, di sini Anda akan memanggil API
+        // untuk upload gambar ke server.
+      }
+    } catch (e) {
+      debugPrint("Gagal mengambil gambar: $e");
+    }
   }
 
   @override
@@ -68,7 +95,10 @@ class _ProfileViewState extends State<ProfileView> {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Panggil widget foto yang sudah diupdate logic-nya
             _buildProfileImage(_controller.model.profileImageUrl),
+
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {
@@ -132,7 +162,6 @@ class _ProfileViewState extends State<ProfileView> {
               },
             ),
 
-            // --- 2. UPDATE BAGIAN SAVES DISINI ---
             _buildMenuOption(
               Icons.bookmark_border,
               "Saves",
@@ -146,7 +175,6 @@ class _ProfileViewState extends State<ProfileView> {
               },
             ),
 
-            // -------------------------------------
             _buildMenuOption(
               Icons.logout,
               "Logout",
@@ -164,9 +192,9 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  // --- WIDGET BUILDERS (Tetap Sama) ---
+  // --- WIDGET BUILDERS ---
 
-  Widget _buildProfileImage(String imageUrl) {
+  Widget _buildProfileImage(String defaultImageUrl) {
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
@@ -179,24 +207,37 @@ class _ProfileViewState extends State<ProfileView> {
           child: CircleAvatar(
             radius: 60,
             backgroundColor: Colors.grey[300],
-            backgroundImage: NetworkImage(imageUrl),
+            // LOGIKA: Jika user sudah pilih gambar, pakai FileImage.
+            // Jika belum, pakai NetworkImage dari Controller/Model.
+            backgroundImage: _selectedImage != null
+                ? FileImage(_selectedImage!) as ImageProvider
+                : NetworkImage(defaultImageUrl),
           ),
         ),
-        Container(
-          height: 40,
-          width: 40,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                spreadRadius: 1,
-              ),
-            ],
+
+        // Tombol Kamera dibungkus GestureDetector
+        GestureDetector(
+          onTap: _pickImage, // Panggil fungsi ambil gambar saat ikon diklik
+          child: Container(
+            height: 40,
+            width: 40,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.camera_alt_outlined,
+              color: primaryGreen,
+              size: 20,
+            ),
           ),
-          child: Icon(Icons.camera_alt_outlined, color: primaryGreen, size: 20),
         ),
       ],
     );
@@ -205,7 +246,6 @@ class _ProfileViewState extends State<ProfileView> {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        // Gunakan Expanded agar setiap kartu memiliki LEBAR yang sama
         Expanded(child: _buildStatCard("24", "Sisa SKS")),
         const SizedBox(width: 12),
         Expanded(child: _buildStatCard("144", "Total SKS")),
@@ -216,10 +256,8 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildStatCard(String value, String label) {
-    // Hapus 'Expanded' dari sini, karena sudah ada di _buildStatsRow
     return Container(
-      // --- TAMBAHKAN TINGGI YANG KONSISTEN DI SINI ---
-      height: 95, // Anda bisa menyesuaikan angka ini
+      height: 95,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
         color: primaryGreen,
@@ -233,7 +271,6 @@ class _ProfileViewState extends State<ProfileView> {
         ],
       ),
       child: Column(
-        // Pusatkan konten secara vertikal
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
@@ -289,7 +326,7 @@ class _ProfileViewState extends State<ProfileView> {
           Icons.arrow_forward_ios,
           size: 16,
           color: Colors.grey,
-        ), // Tambahan panah kecil agar lebih manis
+        ),
       ),
     );
   }
