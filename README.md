@@ -27,9 +27,8 @@ Jika kapasitas suatu kelas penuh, sistem menyediakan mekanisme waiting list untu
 | -------------- | --------------------------- |
 | Framework      | Flutter                     |
 | Bahasa         | Dart                        |
-| Backend        | Firebase                    |
-| Database       | Cloud Firestore             |
-| Authentication | Firebase Auth               |
+| Backend        | Laravel                     |
+| Database       | MySQL                       |
 | Arsitektur     | MVC (Model–View–Controller) |
 
 ---
