@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "install",
+			"label": "npm install",
+			"cwd": "${workspaceFolder}/backend",
+			"presentation": {
+				"reveal": "silent"
+			}
+		}
+	]
+}
