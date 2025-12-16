@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 
+// Import views yang Anda sediakan
+import 'form_krs_view.dart';
+import 'review_kelas_view.dart';
+import 'notifikasi_view.dart';
+import 'daftar_kelas_view.dart'; // Digunakan untuk 'From KRS' dan/atau 'Saved Classes'
+import 'saved_classes_view.dart'; // Tetap diimpor, tetapi tidak digunakan untuk navigasi
+
+// Ganti RiwayatStatusView ke SavedClassesView (menggunakan DaftarKelasView sebagai placeholder logis)
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
 
-  // --- PALET WARNA ---
+  // --- PALET WARNA (Gunakan yang sudah didefinisikan) ---
   final Color bgCanvas = const Color(0xFFE8DFCD);
   final Color primaryGreen = const Color(0xFF054F40);
   final Color textWhite = const Color(0xFFFFFFFF);
@@ -33,29 +41,48 @@ class SettingsView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
         child: Column(
           children: [
-            // List Menu Settings
+            // 1. From KRS -> DaftarKelasView (sesuai implementasi Anda)
             _buildSettingButton(
               "From KRS",
               onTap: () {
-                print("Menu From KRS diklik");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DaftarKelasView()),
+                );
               },
             ),
+
+            // 2. Review -> ReviewKelasView
             _buildSettingButton(
               "Review",
               onTap: () {
-                print("Menu Review diklik");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReviewKelasView()),
+                );
               },
             ),
+
+            // 3. Saved Classes (Mengganti Riwayat Status)
             _buildSettingButton(
-              "Riwayat Status",
+              "Saved Classes", // Teks diganti
               onTap: () {
-                print("Menu Riwayat Status diklik");
+                // Diasumsikan Saved Classes menggunakan DaftarKelasView/SavedClassesView
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DaftarKelasView()),
+                );
               },
             ),
+
+            // 4. Notifikasi -> NotifikasiView
             _buildSettingButton(
               "Notifikasi",
               onTap: () {
-                print("Menu Notifikasi diklik");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotifikasiView()),
+                );
               },
             ),
           ],
@@ -64,20 +91,20 @@ class SettingsView extends StatelessWidget {
     );
   }
 
-  // --- WIDGET HELPER (Agar kodingan tidak berulang) ---
+  // --- WIDGET HELPER (Menggunakan textWhite secara konsisten) ---
   Widget _buildSettingButton(String title, {required VoidCallback onTap}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16), // Jarak antar tombol
+      margin: const EdgeInsets.only(bottom: 16),
       width: double.infinity,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGreen, // Warna Hijau Tua
-          foregroundColor: textWhite, // Warna Text & Icon saat ditekan
-          elevation: 0, // Flat design sesuai gambar
+          backgroundColor: primaryGreen,
+          foregroundColor: textWhite,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // Sudut membulat
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: Row(
@@ -85,16 +112,18 @@ class SettingsView extends StatelessWidget {
           children: [
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
+                // Menggunakan TextStyle non-const agar bisa menggunakan textWhite
                 fontSize: 16,
-                fontWeight: FontWeight.w500, // Medium weight
-                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                color: textWhite, // *** PERBAIKAN: Menggunakan textWhite ***
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios, // Panah ke kanan
+            Icon(
+              // Menggunakan Icon non-const agar bisa menggunakan textWhite
+              Icons.arrow_forward_ios,
               size: 16,
-              color: Colors.white,
+              color: textWhite, // *** PERBAIKAN: Menggunakan textWhite ***
             ),
           ],
         ),
