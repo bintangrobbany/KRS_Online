@@ -27,8 +27,8 @@ Jika kapasitas suatu kelas penuh, sistem menyediakan mekanisme waiting list untu
 | -------------- | --------------------------- |
 | Framework      | Flutter                     |
 | Bahasa         | Dart                        |
-| Backend        | Laravel                     |
-| Database       | MySQL                       |
+| Backend        | Firebase                    |
+| Database       | Firebase                    |
 | Arsitektur     | MVC (Model–View–Controller) |
 
 ---
@@ -62,15 +62,15 @@ Jika kapasitas suatu kelas penuh, sistem menyediakan mekanisme waiting list untu
 
 ---
 
-### 🗂️ Backlog / Pembagian Tugas
+## 🗂️ Backlog / Pembagian Tugas (Fokus UI/UX dan Frontend)
 
-Tabel backlog disediakan untuk pembaruan progres sprint berikutnya.
+Tabel backlog ini mencerminkan pembagian tugas saat proyek masih berfokus pada tahap desain antarmuka, *slicing* kode Flutter, dan persiapan struktur proyek.
 
-| No  | Nama Anggota | Modul / Tugas | Deskripsi | Level | Status |
-| --- | ------------ | ------------- | --------- | ----- | ------ |
-| 1   |              |               |           |       |        |
-| 2   |              |               |           |       |        |
-| 3   |              |               |           |       |        |
-| 4   |              |               |           |       |        |
+| No | Nama Anggota | Modul / Tugas | Deskripsi | Level | Status |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **1** | **Muchammad Bintang Zulfar Robbany** | **Landing Page & Modul Mahasiswa Inti** | Membuat desain dan *slicing* halaman utama (*landing page*), halaman *dashboard* mahasiswa, dan alur pengisian KRS. | Mid/Lead | To Do |
+| **2** | **Edra Angga Wardhana** | **Modul Admin (Master Data)** | Membuat desain dan *slicing* untuk semua halaman manajemen data (CRUD) seperti Data Mata Kuliah, Data Dosen, Data Ruangan. | Mid | To Do |
+| **3** | **Igo Fatahilah Ilham** | **Modul Login, Profile, & Report** | Membuat desain dan *slicing* alur otentikasi (Login/Register), halaman *Profile* pengguna, dan halaman laporan/transkrip nilai. | Junior/Mid | To Do |
+| **4** | **Weldan Andreanor** | **Design System & Reviewer UI** | Bertanggung jawab atas konsistensi desain, pembuatan komponen (*widget* umum seperti tombol, *form*, navigasi), serta melakukan *review* akhir kode UI/UX. | Mid | To Do |
 
 ---
