@@ -3,9 +3,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/krs_controller.dart';
-
-// --- IMPORT MODEL GRID (PENTING) ---
-import '../models/grid_jadwal_model.dart';
+import '../models/krs_model.dart';
 
 // --- IMPORT HALAMAN LAIN ---
 import 'daftar_kelas_view.dart';
@@ -40,15 +38,36 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    print('HomeView: initState called');
     _krsController.addListener(_refreshData);
     _controller.addListener(_refreshData);
+
+    // Load data asynchronously without blocking UI
+    Future.microtask(() async {
+      print('HomeView: Starting data load microtask');
+      // Small delay to let UI render first
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Always load fresh data when entering home view
+      if (mounted) {
+        print('HomeView: Calling loadUserData...');
+        _controller.loadUserData();
+      }
+
+      if (mounted) {
+        print('HomeView: Calling loadMyKrs...');
+        _krsController.loadMyKrs();
+      }
+    });
   }
 
   @override
   void dispose() {
     _krsController.removeListener(_refreshData);
     _controller.removeListener(_refreshData);
-    _controller.dispose();
+    _krsController.dispose();
+    // DON'T dispose singleton HomeController - it's shared across views!
+    // _controller.dispose();
     super.dispose();
   }
 
@@ -60,41 +79,25 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
+  Future<void> _refreshKrsData() async {
+    // Sync data yang dipakai Home card + stats.
+    await Future.wait([_krsController.loadMyKrs(), _controller.loadMyKrs()]);
+    _refreshData();
+  }
+
   // --- LOGIKA NAVIGASI KE GRID DENGAN MEMBAWA DATA ---
   void _navigateToGrid() {
-    // 1. Ambil data kelas yang statusnya 'terdaftar' dari KRS Controller
-    final enrolledKRS = _krsController.getEnrolledClasses();
+    // 1. Ambil data kelas yang benar-benar terdaftar (approved).
+    // Pending = antrean, tidak masuk jadwal.
+    final enrolledKRS = _krsController.myKrsList
+        .where((krs) => krs.status == 'approved')
+        .toList();
 
-    // 2. Konversi ke model Course untuk Grid
-    List<Course> coursesToSend = [];
-
-    for (var krsItem in enrolledKRS) {
-      try {
-        final splitComma = krsItem.jadwal.split(',');
-        if (splitComma.length < 2) continue;
-
-        final day = splitComma[0].trim(); // "Senin"
-        final timePart = splitComma[1].trim(); // "13:00-15:30"
-
-        final splitTime = timePart.split('-');
-        final startTime = splitTime[0].trim();
-        final endTime = splitTime[1].trim();
-
-        coursesToSend.add(
-          Course(
-            id: krsItem.kelasId,
-            name: krsItem.namaMataKuliah,
-            code: "KODE",
-            sks: krsItem.sks,
-            day: day,
-            startTime: startTime,
-            endTime: endTime,
-          ),
-        );
-      } catch (e) {
-        print("Error parsing jadwal di Home: $e");
-      }
-    }
+    // 2. Konversi ke KelasMataKuliah dari kelasDetail
+    List<KelasMataKuliah> coursesToSend = enrolledKRS
+        .where((krs) => krs.kelasDetail != null)
+        .map((krs) => krs.kelasDetail!)
+        .toList();
 
     // 3. Pindah Halaman & Kirim Data
     Navigator.push(
@@ -206,7 +209,10 @@ class _HomeViewState extends State<HomeView> {
 
   // --- UPDATE: HEADER DENGAN TOMBOL INFO (PETA) ---
   Widget _buildTopHeader() {
-    String firstName = _controller.model.studentName.split(' ')[0];
+    // Access studentName getter directly from controller
+    String firstName =
+        (_controller.studentName.isEmpty ? 'User' : _controller.studentName)
+            .split(' ')[0];
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -266,7 +272,7 @@ class _HomeViewState extends State<HomeView> {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ProfileView()),
-        ).then((_) => _refreshData());
+        ).then((_) => _refreshKrsData());
       },
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -288,8 +294,8 @@ class _HomeViewState extends State<HomeView> {
               radius: 32,
               backgroundColor: primaryGreen,
               child: Text(
-                _controller.model.studentName.isNotEmpty
-                    ? _controller.model.studentName[0].toUpperCase()
+                _controller.studentName.isNotEmpty
+                    ? _controller.studentName[0].toUpperCase()
                     : 'U',
                 style: const TextStyle(
                   fontSize: 24,
@@ -304,7 +310,7 @@ class _HomeViewState extends State<HomeView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _controller.model.studentName,
+                    _controller.studentName,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -313,11 +319,11 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'NIM : ${_controller.model.nim}',
+                    'NIM : ${_controller.nim}',
                     style: TextStyle(color: textGrey, fontSize: 12),
                   ),
                   Text(
-                    'Program Studi :\n${_controller.model.programStudi}',
+                    'Program Studi :\n${_controller.programStudi}',
                     style: TextStyle(color: textGrey, fontSize: 12),
                   ),
                 ],
@@ -331,7 +337,7 @@ class _HomeViewState extends State<HomeView> {
                   style: TextStyle(color: textGrey, fontSize: 12),
                 ),
                 Text(
-                  '${_controller.model.semester}\n${_controller.model.year}',
+                  '${_controller.currentUser?.semester ?? 0}\n${DateTime.now().year}',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -371,7 +377,7 @@ class _HomeViewState extends State<HomeView> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const FormKrsView()),
-              ).then((_) => _refreshData()),
+              ).then((_) => _refreshKrsData()),
               style: getStyle(primaryGreen),
               child: const Text(
                 'Form KRS',
@@ -388,7 +394,7 @@ class _HomeViewState extends State<HomeView> {
                 MaterialPageRoute(
                   builder: (context) => const DaftarKelasView(),
                 ),
-              ).then((_) => _refreshData()),
+              ).then((_) => _refreshKrsData()),
               style: getStyle(primaryGreen),
               child: const Text(
                 'Daftar Kelas',
@@ -417,7 +423,7 @@ class _HomeViewState extends State<HomeView> {
                 MaterialPageRoute(
                   builder: (context) => const ReviewKelasView(),
                 ),
-              ).then((_) => _refreshData()),
+              ).then((_) => _refreshKrsData()),
               style: getStyle(primaryGreen),
               child: const Text(
                 'Review Kelas',
@@ -545,15 +551,22 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildDaftarKelasCard() {
-    final enrolledClasses = _krsController.getEnrolledClasses();
-    final queuedClasses = _krsController.getQueuedClasses();
+    // Hindari duplikasi: getEnrolledClasses() mengandung pending, sedangkan
+    // getQueuedClasses() juga pending. Jadi split langsung dari sumber utama.
+    final allKrs = _krsController.myKrsList;
+    final enrolledClasses = allKrs
+        .where((e) => e.status == 'approved')
+        .toList();
+    final queuedClasses = allKrs
+        .where((e) => e.status == 'pending' || e.status == 'antrian')
+        .toList();
     final allClasses = [...enrolledClasses, ...queuedClasses];
 
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const ReviewKelasView()),
-      ).then((_) => _refreshData()),
+      ).then((_) => _refreshKrsData()),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -605,10 +618,15 @@ class _HomeViewState extends State<HomeView> {
             else
               Column(
                 children: allClasses.map((enrollment) {
+                  final statusLabel =
+                      (enrollment.status == 'pending' ||
+                          enrollment.status == 'antrian')
+                      ? 'Antrean'
+                      : 'Terdaftar';
                   return _buildReviewItem(
-                    enrollment.namaMataKuliah,
-                    "${enrollment.jadwal} / ${enrollment.sks} sks",
-                    enrollment.status,
+                    enrollment.namaMataKuliah ?? '-',
+                    "${enrollment.jadwal ?? '-'} / ${enrollment.sks ?? 0} sks",
+                    statusLabel,
                   );
                 }).toList(),
               ),

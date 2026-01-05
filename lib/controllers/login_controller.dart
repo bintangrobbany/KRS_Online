@@ -1,109 +1,139 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../views/home_view.dart';
 import '../views/admin/admin_dashboard_view.dart';
-import '../models/login_model.dart';
+import '../services/api_service.dart';
+import '../helpers/auth_helper.dart';
+import '../config/api_config.dart';
 
 class LoginController extends ChangeNotifier {
-  final LoginModel _model = LoginModel();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isPasswordObscured = true;
+  bool _isLoading = false;
 
-  // --- Syarat Login Mahasiswa ---
-  // (Pastikan nilai ini sesuai kebutuhan, misal panjang NIM 10 atau 15)
-  final String requiredNimPrefix = '202210370311';
-  final int requiredNimLength = 15; // Contoh saya ubah ke 15 sesuai pesan error
-  final int minPasswordLength = 6; // Contoh standar password
-
-  bool get isPasswordObscured => _model.isPasswordObscured;
+  bool get isPasswordObscured => _isPasswordObscured;
+  bool get isLoading => _isLoading;
 
   void togglePasswordVisibility() {
-    _model.isPasswordObscured = !_model.isPasswordObscured;
+    _isPasswordObscured = !_isPasswordObscured;
     notifyListeners();
   }
 
   Future<void> login(BuildContext context, VoidCallback onSuccess) async {
-    final String username = usernameController.text.trim();
+    final String rawUsername = usernameController.text;
     final String password = passwordController.text;
 
-    // ---------------------------------------------------------
-    // 1. CEK ADMIN (JALUR KHUSUS)
-    // Pengecekan ini ditaruh PALING ATAS agar tidak kena validasi angka NIM
-    // ---------------------------------------------------------
-    if (username == 'admin@krs.com' && password == '12345678') {
-      print("Login sebagai Admin");
+    final normalizedUsername = rawUsername.trim().toUpperCase();
+    final isAdminLogin = normalizedUsername.startsWith('ADMIN');
 
-      // Admin biasanya tidak butuh animasi dialog 'Success' yang lama,
-      // Langsung pindah ke Dashboard Admin.
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => AdminDashboardView()),
-      );
+    // Mahasiswa: pastikan NIM bersih dari spasi/karakter lain
+    final String nim = isAdminLogin
+        ? rawUsername.trim()
+        : rawUsername.replaceAll(RegExp(r'\D'), '');
 
-      return; // PENTING: Hentikan fungsi agar validasi NIM di bawah tidak dijalankan
-    }
-
-    // ---------------------------------------------------------
-    // 2. VALIDASI LOGIN MAHASISWA
-    // Jika bukan admin, baru kita cek syarat-syarat NIM
-    // ---------------------------------------------------------
-
-    // A. Cek kosong
-    if (username.isEmpty || password.isEmpty) {
-      _showError(context, "Username dan Password tidak boleh kosong");
+    // Validasi input
+    if (nim.isEmpty || password.isEmpty) {
+      _showError(context, "NIM dan Password tidak boleh kosong");
       return;
     }
 
-    // B. Cek apakah NIM berisi Angka saja (Validasi Mahasiswa)
-    // Karena username admin sudah lolos di atas, yang sampai sini pasti mahasiswa
-    if (int.tryParse(username) == null) {
-      _showError(context, "NIM harus berupa angka");
-      return;
+    // Validasi NIM: mahasiswa wajib 15 digit numerik, admin dikecualikan
+    if (!isAdminLogin) {
+      final isNumeric15 = RegExp(r'^\d{15}$').hasMatch(nim);
+      if (!isNumeric15) {
+        _showError(
+          context,
+          "NIM harus 15 digit (angka)\nKecuali login admin (contoh: ADMIN001)",
+        );
+        return;
+      }
     }
 
-    // C. Cek awalan NIM (Jika ada aturan tahun angkatan)
-    if (requiredNimPrefix.isNotEmpty &&
-        !username.startsWith(requiredNimPrefix)) {
-      _showError(context, "Awalan NIM tidak valid");
-      return;
-    }
+    _isLoading = true;
+    notifyListeners();
 
-    // D. Cek panjang karakter NIM
-    // (Anda bisa sesuaikan requiredNimLength di bagian deklarasi variabel di atas)
-    if (username.length != requiredNimLength) {
-      _showError(context, "NIM harus terdiri dari $requiredNimLength digit");
-      return;
-    }
+    try {
+      print('=== LOGIN ATTEMPT ===');
+      print('NIM: $nim');
+      print('API URL: ${ApiConfig.baseUrl}${ApiConfig.login}');
 
-    // E. Cek panjang password
-    if (password.length < minPasswordLength) {
-      _showError(context, "Password minimal harus $minPasswordLength karakter");
-      return;
-    }
+      // Test connection first (warning only, not blocking)
+      // print('Testing backend connection...');
+      // final canConnect = await ConnectionChecker.checkBackendConnection();
+      // if (!canConnect) {
+      //   print('⚠️ Warning: Health check failed, but will try login anyway...');
+      // } else {
+      //   print('✓ Backend connection OK');
+      // }
 
-    // ---------------------------------------------------------
-    // 3. JIKA LOLOS SEMUA VALIDASI MAHASISWA
-    // ---------------------------------------------------------
-    print("Validasi Mahasiswa berhasil!");
+      // Call API login (try regardless of health check)
+      final response = await ApiService.post(ApiConfig.login, {
+        'nim': nim,
+        'password': password,
+      }, requiresAuth: false);
 
-    // Simpan username ke SharedPreferences
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('username', username);
+      print('Login response: $response');
 
-    // Jalankan callback dialog sukses dari View
-    onSuccess();
+      if (response['success'] == true) {
+        final userData = response['data']['user'];
+        final token = response['data']['token'];
 
-    // Tunggu animasi
-    await Future.delayed(const Duration(seconds: 2));
+        // Simpan data login
+        await AuthHelper.saveLoginData(
+          token: (token ?? '').toString(),
+          userId: (userData['id'] ?? '').toString(),
+          nim: (userData['nim'] ?? '').toString(),
+          name: (userData['name'] ?? '').toString(),
+          email: (userData['email'] ?? '').toString(),
+          prodi: userData['prodi']?.toString(),
+          semester: userData['semester'] ?? 0,
+          role: userData['role'],
+        );
 
-    // Pindah ke Home Mahasiswa
-    if (context.mounted) {
-      Navigator.of(context, rootNavigator: true).pop(); // Tutup Dialog
+        // Panggil onSuccess callback untuk menampilkan dialog success
+        if (context.mounted) {
+          onSuccess();
+        }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeView()),
-      );
+        // Tunggu dialog success dan berikan waktu untuk complete operations
+        await Future.delayed(const Duration(milliseconds: 2500));
+
+        // Navigate based on role
+        if (context.mounted) {
+          final userRole = userData['role'] ?? 'mahasiswa';
+
+          // Use pushAndRemoveUntil to clear navigation stack
+          if (userRole == 'admin') {
+            // Navigate to admin dashboard
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AdminDashboardView(),
+              ),
+              (route) => false,
+            );
+          } else {
+            // Navigate to student home
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeView()),
+              (route) => false,
+            );
+          }
+        }
+      } else {
+        if (context.mounted) {
+          _showError(context, response['error'] ?? 'Login gagal');
+        }
+      }
+    } catch (e) {
+      print('Login error: $e');
+      if (context.mounted) {
+        _showError(context, 'Error: ${e.toString()}');
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

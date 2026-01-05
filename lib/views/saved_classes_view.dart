@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../controllers/saved_classes_controller.dart';
+import '../models/krs_model.dart';
 
 class SavedClassesView extends StatefulWidget {
   const SavedClassesView({super.key});
@@ -8,6 +10,8 @@ class SavedClassesView extends StatefulWidget {
 }
 
 class _SavedClassesViewState extends State<SavedClassesView> {
+  final SavedClassesController _controller = SavedClassesController();
+
   // --- PALET WARNA (Sama dengan Profile & DaftarKelas) ---
   final Color bgCanvas = const Color(0xFFE8DFCD);
   final Color primaryGreen = const Color(0xFF054F40);
@@ -16,39 +20,38 @@ class _SavedClassesViewState extends State<SavedClassesView> {
   final Color textGrey = const Color(0xFF888888);
   final Color warningYellow = const Color(0xFFF57F17);
 
-  // --- DATA DUMMY (Simulasi data yang sudah di-save) ---
-  // Dalam aplikasi nyata, data ini diambil dari HomeController atau Database
-  List<Map<String, dynamic>> _savedClasses = [
-    {
-      "code": "IF320",
-      "sks": 3,
-      "name": "Pemrograman Web",
-      "schedule": "13:00-15:30",
-      "day": "Senin",
-      "slot": 0, // Full
-    },
-    {
-      "code": "IF350",
-      "sks": 3,
-      "name": "Jaringan Komputer",
-      "schedule": "13:00-15:30",
-      "day": "Rabu",
-      "slot": 5, // Available
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onUpdate);
+    _loadData();
+  }
 
-  void _removeClassName(int index) {
-    String removedName = _savedClasses[index]['name'];
-    setState(() {
-      _savedClasses.removeAt(index);
-    });
+  @override
+  void dispose() {
+    _controller.removeListener(_onUpdate);
+    super.dispose();
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("$removedName dihapus dari daftar simpan"),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadData() async {
+    await _controller.loadSavedClasses();
+  }
+
+  void _removeClassName(KelasMataKuliah kelas) async {
+    final success = await _controller.toggleSaveClass(kelas.id);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${kelas.namaMataKuliah} dihapus dari daftar simpan"),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   @override
@@ -68,7 +71,9 @@ class _SavedClassesViewState extends State<SavedClassesView> {
         ),
         centerTitle: true,
       ),
-      body: _savedClasses.isEmpty
+      body: _controller.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _controller.savedClasses.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -83,21 +88,34 @@ class _SavedClassesViewState extends State<SavedClassesView> {
                     "Belum ada mata kuliah disimpan",
                     style: TextStyle(color: textGrey, fontSize: 16),
                   ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _loadData,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text("Refresh"),
+                  ),
                 ],
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(24),
-              itemCount: _savedClasses.length,
-              itemBuilder: (context, index) {
-                final data = _savedClasses[index];
-                return _buildSavedCard(data, index);
-              },
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(24),
+                itemCount: _controller.savedClasses.length,
+                itemBuilder: (context, index) {
+                  final kelas = _controller.savedClasses[index];
+                  return _buildSavedCard(kelas);
+                },
+              ),
             ),
     );
   }
 
-  Widget _buildSavedCard(Map<String, dynamic> data, int index) {
+  Widget _buildSavedCard(KelasMataKuliah kelas) {
+    // Slot calculation
+    final int available = kelas.kapasitas - kelas.pendaftarSaat;
+    final bool isFull = available <= 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
@@ -130,7 +148,7 @@ class _SavedClassesViewState extends State<SavedClassesView> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    "${data['code']} • ${data['sks']} SKS",
+                    "${kelas.kodeMataKuliah} • ${kelas.sks} SKS",
                     style: TextStyle(
                       color: primaryGreen,
                       fontSize: 12,
@@ -140,7 +158,7 @@ class _SavedClassesViewState extends State<SavedClassesView> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  data['name'],
+                  kelas.namaMataKuliah,
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
@@ -158,8 +176,29 @@ class _SavedClassesViewState extends State<SavedClassesView> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      "${data['day']}, ${data['schedule']}",
+                      "${kelas.hari}, ${kelas.jamMulai}-${kelas.jamSelesai}",
                       style: TextStyle(color: textGrey, fontSize: 13),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.people_outline,
+                      size: 14,
+                      color: isFull ? Colors.red : textGrey,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isFull ? "Kelas Penuh" : "$available Slot Tersedia",
+                      style: TextStyle(
+                        color: isFull ? Colors.red : textGrey,
+                        fontSize: 13,
+                        fontWeight: isFull
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
                     ),
                   ],
                 ),
@@ -171,7 +210,7 @@ class _SavedClassesViewState extends State<SavedClassesView> {
           Column(
             children: [
               GestureDetector(
-                onTap: () => _removeClassName(index),
+                onTap: () => _removeClassName(kelas),
                 child: Container(
                   height: 40,
                   width: 40,

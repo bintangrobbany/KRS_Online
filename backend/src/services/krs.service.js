@@ -8,16 +8,38 @@ class KRSService {
     this.usersCollection = db.collection('users');
   }
 
+  _toDate(value) {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value.toDate === 'function') return value.toDate(); // Firestore Timestamp
+    return null;
+  }
+
   async getKRSByUser(userId, semester, tahunAjaran) {
-    let query = this.krsCollection.where('userId', '==', userId);
-    
-    if (semester) query = query.where('semester', '==', semester);
-    if (tahunAjaran) query = query.where('tahunAjaran', '==', tahunAjaran);
-    
-    const snapshot = await query.orderBy('createdAt', 'desc').get();
-    
+    // NOTE: Hindari query multi-field + orderBy karena memerlukan composite index.
+    // Ambil berdasarkan userId saja, lalu filter & sort di memory.
+    const snapshot = await this.krsCollection.where('userId', '==', userId).get();
+    const { docs: snapshotDocs } = snapshot;
+
+    let docs = snapshotDocs;
+    if (semester) {
+      docs = docs.filter(d => (d.data().semester ?? null) === semester);
+    }
+    if (tahunAjaran) {
+      docs = docs.filter(d => (d.data().tahunAjaran ?? null) === tahunAjaran);
+    }
+
+    docs.sort((a, b) => {
+      const aDate = this._toDate(a.data().createdAt);
+      const bDate = this._toDate(b.data().createdAt);
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
+      return bDate - aDate;
+    });
+
     const krsList = [];
-    for (const doc of snapshot.docs) {
+    for (const doc of docs) {
       const krsData = { id: doc.id, ...doc.data() };
       
       // Get jadwal details
@@ -53,10 +75,12 @@ class KRSService {
     if (!jadwal.isActive) {
       throw new Error('Kelas ini tidak aktif');
     }
-    
-    if (jadwal.terisi >= jadwal.kuota) {
-      throw new Error('Kuota kelas sudah penuh');
-    }
+
+    // Penentuan status otomatis:
+    // - Jika slot masih ada -> approved
+    // - Jika kelas penuh -> pending (antrean)
+    const isFull = Number(jadwal.terisi) >= Number(jadwal.kuota);
+    const nextStatus = isFull ? 'pending' : 'approved';
     
     // Get mata kuliah
     const mkDoc = await this.mataKuliahCollection.doc(jadwal.mataKuliahId).get();
@@ -65,44 +89,65 @@ class KRSService {
     }
     const mataKuliah = { id: mkDoc.id, ...mkDoc.data() };
     
-    // Check if already enrolled
-    const existingSnapshot = await this.krsCollection
-      .where('userId', '==', userId)
-      .where('jadwalId', '==', jadwalId)
-      .where('semester', '==', semester)
-      .where('tahunAjaran', '==', tahunAjaran)
-      .get();
-    
-    if (!existingSnapshot.empty) {
+    // Check if already enrolled (hindari query multi-field yang butuh index)
+    const existingSnapshot = await this.krsCollection.where('userId', '==', userId).get();
+    const alreadyEnrolled = existingSnapshot.docs.some((d) => {
+      const k = d.data();
+      return (
+        k.jadwalId === jadwalId &&
+        k.semester === semester &&
+        k.tahunAjaran === tahunAjaran
+      );
+    });
+
+    if (alreadyEnrolled) {
       throw new Error('Anda sudah mengambil mata kuliah ini');
     }
     
-    // Check user's total SKS
-    const userKRSSnapshot = await this.krsCollection
-      .where('userId', '==', userId)
-      .where('semester', '==', semester)
-      .where('tahunAjaran', '==', tahunAjaran)
-      .where('status', 'in', ['pending', 'approved'])
-      .get();
-    
+    // Check user's total SKS (hindari query composite index)
+    const userKRSSnapshot = await this.krsCollection.where('userId', '==', userId).get();
+
+    const eligibleKrsDocs = userKRSSnapshot.docs
+      .map(d => d.data())
+      .filter(krs =>
+        krs.semester === semester &&
+        krs.tahunAjaran === tahunAjaran &&
+        (krs.status === 'pending' || krs.status === 'approved')
+      );
+
     let currentSKS = 0;
-    for (const doc of userKRSSnapshot.docs) {
-      const krs = doc.data();
+    for (const krs of eligibleKrsDocs) {
       const jDoc = await this.jadwalCollection.doc(krs.jadwalId).get();
       if (jDoc.exists) {
         const j = jDoc.data();
         const mDoc = await this.mataKuliahCollection.doc(j.mataKuliahId).get();
         if (mDoc.exists) {
-          currentSKS += mDoc.data().sks;
+          const sksValue = Number(mDoc.data().sks);
+          currentSKS += Number.isFinite(sksValue) ? sksValue : 0;
         }
       }
     }
     
     const userDoc = await this.usersCollection.doc(userId).get();
+    if (!userDoc.exists) {
+      throw new Error('User tidak ditemukan');
+    }
+
     const user = userDoc.data();
+
+    // maxSks bisa null pada data lama; default untuk mahasiswa adalah 24.
+    const maxSksValue = Number(user?.maxSks);
+    const maxSksLimit = Number.isFinite(maxSksValue) && maxSksValue > 0
+      ? maxSksValue
+      : 24;
     
-    if (currentSKS + mataKuliah.sks > user.maxSks) {
-      throw new Error(`Total SKS melebihi batas maksimal (${user.maxSks} SKS)`);
+    const mataKuliahSks = Number(mataKuliah?.sks);
+    const mataKuliahSksValue = Number.isFinite(mataKuliahSks)
+      ? mataKuliahSks
+      : 0;
+
+    if (currentSKS + mataKuliahSksValue > maxSksLimit) {
+      throw new Error(`Total SKS melebihi batas maksimal (${maxSksLimit} SKS)`);
     }
     
     // Create KRS
@@ -113,18 +158,22 @@ class KRSService {
       jadwalId,
       semester,
       tahunAjaran,
-      status: 'pending',
+      status: nextStatus,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     
     await krsRef.set(krsData);
     
-    // Update terisi
-    await jadwalDoc.ref.update({
-      terisi: jadwal.terisi + 1,
-      updatedAt: new Date(),
-    });
+    // Update terisi hanya jika approved (ambil kursi nyata)
+    if (nextStatus === 'approved') {
+      await jadwalDoc.ref.update({
+        terisi: jadwal.terisi + 1,
+        updatedAt: new Date(),
+      });
+      // Update object untuk response agar konsisten
+      jadwal.terisi += 1;
+    }
     
     // Get complete data for response
     jadwal.mataKuliah = mataKuliah;
@@ -145,10 +194,11 @@ class KRSService {
     if (krs.userId !== userId) {
       throw new Error('Anda tidak memiliki akses untuk menghapus KRS ini');
     }
-    
-    if (krs.status === 'approved') {
-      throw new Error('KRS yang sudah disetujui tidak dapat dihapus');
-    }
+
+    // 'approved' tetap boleh dihapus (drop mata kuliah).
+    // Kuota (terisi) hanya berkurang jika yang dihapus adalah 'approved'
+    // karena hanya status itu yang mengambil kursi nyata.
+    const shouldDecrementTerisi = krs.status === 'approved';
     
     // Get jadwal
     const jadwalDoc = await this.jadwalCollection.doc(krs.jadwalId).get();
@@ -157,7 +207,7 @@ class KRSService {
     await krsDoc.ref.delete();
     
     // Update terisi
-    if (jadwalDoc.exists) {
+    if (shouldDecrementTerisi && jadwalDoc.exists) {
       const jadwal = jadwalDoc.data();
       await jadwalDoc.ref.update({
         terisi: Math.max(0, jadwal.terisi - 1),

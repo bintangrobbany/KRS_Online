@@ -21,7 +21,8 @@ class _LoginViewState extends State<LoginView> {
   void _showLoginSuccessDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false, // User tidak bisa menutup dialog dengan klik di luar
+      barrierDismissible:
+          false, // User tidak bisa menutup dialog dengan klik di luar
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -42,11 +43,7 @@ class _LoginViewState extends State<LoginView> {
                 CircleAvatar(
                   radius: 35,
                   backgroundColor: Colors.greenAccent,
-                  child: Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 40,
-                  ),
+                  child: Icon(Icons.check, color: Colors.white, size: 40),
                 ),
                 SizedBox(height: 20),
                 // Teks "Login Successful"
@@ -85,11 +82,19 @@ class _LoginViewState extends State<LoginView> {
               const SizedBox(height: 40),
               Text(
                 'Log in',
-                style: TextStyle(color: primaryColor, fontSize: 36, fontWeight: FontWeight.w900, fontFamily: 'Poppins'),
+                style: TextStyle(
+                  color: primaryColor,
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Poppins',
+                ),
               ),
               const SizedBox(height: 40),
 
-              Text('Username / NIM', style: TextStyle(color: textColor, fontFamily: 'Poppins')),
+              Text(
+                'Username / NIM',
+                style: TextStyle(color: textColor, fontFamily: 'Poppins'),
+              ),
               const SizedBox(height: 8),
 
               TextField(
@@ -102,14 +107,20 @@ class _LoginViewState extends State<LoginView> {
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
-                  suffixIcon: const Icon(Icons.keyboard_arrow_down, color: Colors.black),
+                  suffixIcon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.black,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
 
-              Text('Password', style: TextStyle(color: textColor, fontFamily: 'Poppins')),
+              Text(
+                'Password',
+                style: TextStyle(color: textColor, fontFamily: 'Poppins'),
+              ),
               const SizedBox(height: 8),
-              
+
               ListenableBuilder(
                 listenable: _controller,
                 builder: (context, child) {
@@ -125,7 +136,12 @@ class _LoginViewState extends State<LoginView> {
                         borderSide: BorderSide.none,
                       ),
                       suffixIcon: IconButton(
-                        icon: Icon(_controller.isPasswordObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey),
+                        icon: Icon(
+                          _controller.isPasswordObscured
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: Colors.grey,
+                        ),
                         onPressed: _controller.togglePasswordVisibility,
                       ),
                     ),
@@ -133,22 +149,31 @@ class _LoginViewState extends State<LoginView> {
                 },
               ),
               const SizedBox(height: 12),
-              
+
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordView()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordView(),
+                      ),
+                    );
                   },
-                  child: Text('Forgot password?', style: TextStyle(color: textColor, fontFamily: 'Poppins')),
+                  child: Text(
+                    'Forgot password?',
+                    style: TextStyle(color: textColor, fontFamily: 'Poppins'),
+                  ),
                 ),
               ),
               const SizedBox(height: 30),
 
               SizedBox(
                 width: double.infinity,
-                child: Builder(
-                  builder: (BuildContext newContext) {
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, child) {
                     return ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
@@ -157,21 +182,73 @@ class _LoginViewState extends State<LoginView> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () {
-                        // Kirim method _showLoginSuccessDialog sebagai callback
-                        _controller.login(newContext, _showLoginSuccessDialog);
-                      },
-                      child: const Text(
-                        'Log in',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
+                      onPressed: _controller.isLoading
+                          ? null
+                          : () {
+                              // Kirim method _showLoginSuccessDialog sebagai callback
+                              _controller.login(
+                                context,
+                                _showLoginSuccessDialog,
+                              );
+                            },
+                      child: _controller.isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Log in',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
                     );
                   },
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Debug info
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ℹ️ Troubleshooting:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade900,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '• Pastikan backend running (npm start)\n'
+                      '• Gunakan IP lokal: http://192.168.1.10:3000/api\n'
+                      '• Jangan gunakan 10.0.2.2 jika timeout\n'
+                      '• NIM mahasiswa wajib 15 digit\n'
+                      '• Test NIM: 202210370311191\n'
+                      '• Password: password123',
+                      style: TextStyle(
+                        color: Colors.blue.shade800,
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

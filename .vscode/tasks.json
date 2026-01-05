@@ -9,6 +9,22 @@
 			"presentation": {
 				"reveal": "silent"
 			}
+		},
+		{
+			"type": "shell",
+			"label": "backend: npm run dev",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"${workspaceFolder}/backend",
+				"run",
+				"dev"
+			],
+			"isBackground": true,
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			}
 		}
 	]
 }

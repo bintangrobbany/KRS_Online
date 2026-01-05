@@ -4,12 +4,23 @@
 
 ### 📌 Nama Aplikasi
 
-# **Untuk Login KRS Online**
+# **KRS Online - Sistem Pengisian Kartu Rencana Studi**
 
-Sementara :
+---
 
-1. Sebagai Admin: Username; admin@krs.com, Password;12345678
-2. Sebagai User/Mahasiswa: Username;123456789012345(15 digit), Password;12345678 (8 angka)
+## 🚀 Quick Start
+
+Untuk langkah setup lengkap, lihat **[SETUP_GUIDE.md](./SETUP_GUIDE.md)**
+
+### Login Credentials (Testing):
+
+1. **Admin:** 
+   - Username: `admin@krs.com`
+   - Password: `12345678`
+
+2. **Mahasiswa:**
+   - NIM: `202210370311250` (15 digit)
+   - Password: `password123`
 
 ---
 

@@ -22,6 +22,11 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> {
   final HomeController _controller = HomeController();
 
+  // Baseline historis (akumulasi 6 semester) sesuai kebutuhan.
+  static const int _defaultMaxKrsSks = 24;
+  static const int _baseTotalSksTaken = 119;
+  static const int _baseTotalCoursesTaken = 46;
+
   // --- VARIABEL UNTUK IMAGE PICKER ---
   File? _selectedImage; // Menyimpan foto yang dipilih
   final ImagePicker _picker = ImagePicker();
@@ -70,7 +75,8 @@ class _ProfileViewState extends State<ProfileView> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isProfileComplete = _controller.model.isProfileComplete;
+    final bool isProfileComplete =
+        _controller.currentUser?.isProfileComplete ?? false;
 
     return Scaffold(
       backgroundColor: bgCanvas,
@@ -88,7 +94,7 @@ class _ProfileViewState extends State<ProfileView> {
           children: [
             const SizedBox(height: 10),
             Text(
-              "Hello, ${_controller.model.studentName.split(' ')[0]}",
+              "Hello, ${(_controller.currentUser?.studentName ?? 'User').split(' ')[0]}",
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -98,7 +104,7 @@ class _ProfileViewState extends State<ProfileView> {
             const SizedBox(height: 24),
 
             // Panggil widget foto yang sudah diupdate logic-nya
-            _buildProfileImage(_controller.model.profileImageUrl),
+            _buildProfileImage(_controller.currentUser?.profileImageUrl ?? ''),
 
             const SizedBox(height: 24),
             ElevatedButton(
@@ -111,11 +117,7 @@ class _ProfileViewState extends State<ProfileView> {
                 );
 
                 if (result != null && result is Map<String, String>) {
-                  _controller.updateProfile(
-                    phone: result['phone'],
-                    email: result['email'],
-                    social: result['social'],
-                  );
+                  _controller.updateProfile(phoneNumber: result['phone']);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -256,15 +258,95 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildStatsRow() {
+    final currentKrs = _getCurrentKrsItems();
+    final int currentKrsSks = _sumSks(currentKrs);
+    final int currentKrsCourseCount = _countUniqueCourses(currentKrs);
+
+    final int maxSks = _controller.currentUser?.maxSks ?? _defaultMaxKrsSks;
+    final int remainingSks = (maxSks - currentKrsSks).clamp(0, maxSks);
+
+    final int totalSksTaken = _baseTotalSksTaken + currentKrsSks;
+    final int totalCoursesTaken =
+        _baseTotalCoursesTaken + currentKrsCourseCount;
+
     return Row(
       children: [
-        Expanded(child: _buildStatCard("24", "Sisa SKS")),
+        Expanded(child: _buildStatCard("$remainingSks", "Sisa SKS")),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard("144", "Total SKS")),
+        Expanded(child: _buildStatCard("$totalSksTaken", "Total SKS")),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard("20", "Total Mata\nKuliah")),
+        Expanded(
+          child: _buildStatCard("$totalCoursesTaken", "Total Mata\nKuliah"),
+        ),
       ],
     );
+  }
+
+  /// Ambil item KRS "saat ini" berdasarkan kombinasi (semester, tahunAjaran)
+  /// paling baru dari KRS pending/approved.
+  List<dynamic> _getCurrentKrsItems() {
+    final eligible = _controller.myKrsList
+        .where((krs) => krs.status == 'approved')
+        .toList();
+
+    if (eligible.isEmpty) return const [];
+
+    // Tentukan yang paling baru berdasarkan createdAt (fallback: ambil pertama).
+    eligible.sort((a, b) {
+      final aTime = a.createdAt;
+      final bTime = b.createdAt;
+
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      return bTime.compareTo(aTime);
+    });
+
+    final latest = eligible.first;
+    final latestSemester = latest.semester;
+    final latestYear = latest.tahunAjaran;
+
+    if (latestSemester != null && latestYear != null) {
+      return eligible
+          .where(
+            (krs) =>
+                krs.semester == latestSemester && krs.tahunAjaran == latestYear,
+          )
+          .toList();
+    }
+
+    if (latestSemester != null) {
+      return eligible.where((krs) => krs.semester == latestSemester).toList();
+    }
+
+    return eligible;
+  }
+
+  int _sumSks(List<dynamic> krsItems) {
+    int sum = 0;
+    for (final item in krsItems) {
+      try {
+        sum += (item.kelasDetail?.sks ?? 0) as int;
+      } catch (_) {
+        // Abaikan jika data tidak sesuai
+      }
+    }
+    return sum;
+  }
+
+  int _countUniqueCourses(List<dynamic> krsItems) {
+    final ids = <String>{};
+    for (final item in krsItems) {
+      try {
+        final String? jadwalId = item.jadwalId;
+        if (jadwalId != null && jadwalId.isNotEmpty) {
+          ids.add(jadwalId);
+        }
+      } catch (_) {
+        // Abaikan jika data tidak sesuai
+      }
+    }
+    return ids.length;
   }
 
   Widget _buildStatCard(String value, String label) {

@@ -11,8 +11,25 @@ async function seedData() {
 
     const users = [
       {
+        id: 'admin1',
+        nim: 'ADMIN001',
+        email: 'admin@krs.ac.id',
+        password: hashedPassword,
+        name: 'Admin Sistem',
+        phoneNumber: '08111111111',
+        prodi: 'Administrator',
+        semester: null,
+        ipk: null,
+        maxSks: null,
+        photoUrl: null,
+        role: 'admin',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
         id: 'user1',
-        nim: '202210370311',
+        nim: '202210370311191',
         email: 'mahasiswa1@university.ac.id',
         password: hashedPassword,
         name: 'Budi Santoso',
@@ -22,13 +39,14 @@ async function seedData() {
         ipk: 3.5,
         maxSks: 24,
         photoUrl: null,
+        role: 'mahasiswa',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         id: 'user2',
-        nim: '202210370322',
+        nim: '202210370322192',
         email: 'mahasiswa2@university.ac.id',
         password: hashedPassword,
         name: 'Siti Rahmawati',
@@ -38,13 +56,14 @@ async function seedData() {
         ipk: 3.8,
         maxSks: 24,
         photoUrl: null,
+        role: 'mahasiswa',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         id: 'user3',
-        nim: '202210370345',
+        nim: '202210370345193',
         email: 'mahasiswa3@university.ac.id',
         password: hashedPassword,
         name: 'Ahmad Fauzi',
@@ -54,6 +73,7 @@ async function seedData() {
         ipk: 3.2,
         maxSks: 24,
         photoUrl: null,
+        role: 'mahasiswa',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -276,6 +296,24 @@ async function seedData() {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
+
+      // === CONTOH KELAS PENUH (untuk test tombol "Daftar Antrean") ===
+      // kuota == terisi -> dianggap penuh
+      {
+        id: 'jadwal_full1',
+        mataKuliahId: 'mk5', // Cloud Computing
+        kodeKelas: 'FULL',
+        hari: 'Kamis',
+        jamMulai: '10:00',
+        jamSelesai: '12:30',
+        ruangan: 'Lab Cloud',
+        dosen: 'Dr. Rina Kusuma, M.Kom',
+        kuota: 25,
+        terisi: 25,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
     ];
 
     const batch3 = db.batch();
@@ -358,11 +396,7 @@ async function seedData() {
       batch5.set(notifRef, notif);
     });
     await batch5.commit();
-    console.log('   NIM: 202210370311');
-    console.log('   Password: password123');
-    console.log('\n👥 Other Users:');
-    console.log('   NIM: 202210370322 (Siti Rahmawati)');
-    console.log('   NIM: 202210370345 (Ahmad Fauzi)\n');
+    
     console.log('\n✅ Seeding completed successfully!\n');
     console.log('📊 Summary:');
     console.log(`   - Users: ${users.length}`);
@@ -370,8 +404,13 @@ async function seedData() {
     console.log(`   - Jadwal: ${jadwal.length}`);
     console.log(`   - KRS: ${krsData.length}`);
     console.log(`   - Notifications: ${notifications.length}`);
-    console.log('\n🔐 Test Login:');
-    console.log('   NIM: 2021001');
+    console.log('\n🔐 Admin Login:');
+    console.log('   NIM: ADMIN001');
+    console.log('   Password: password123');
+    console.log('\n👥 Mahasiswa Login:');
+    console.log('   NIM: 202210370311191 (Budi Santoso)');
+    console.log('   NIM: 202210370322192 (Siti Rahmawati)');
+    console.log('   NIM: 202210370345193 (Ahmad Fauzi)');
     console.log('   Password: password123\n');
 
     process.exit(0);

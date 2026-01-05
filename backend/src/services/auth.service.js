@@ -75,6 +75,7 @@ class AuthService {
         userId: user.id,
         nim: user.nim,
         email: user.email,
+        role: user.role || 'mahasiswa',
       },
       config.jwt.secret,
       { expiresIn: config.jwt.expiresIn }
@@ -89,8 +90,9 @@ class AuthService {
         prodi: user.prodi,
         semester: user.semester,
         ipk: user.ipk,
-        maxSks: user.maxSks,
+        maxSks: user.maxSks ?? 24,
         photoUrl: user.photoUrl,
+        role: user.role || 'mahasiswa',
       },
       token,
     };

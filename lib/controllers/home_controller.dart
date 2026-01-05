@@ -1,115 +1,194 @@
 // lib/controllers/home_controller.dart
 
 import 'package:flutter/material.dart';
-import '../models/home_model.dart';
+import '../services/api_service.dart';
+import '../helpers/auth_helper.dart';
+import '../config/api_config.dart';
+import '../models/user_model.dart';
+import '../models/krs_model.dart';
 
 class HomeController extends ChangeNotifier {
-  // --- CONSTRUCTOR ---
-  // Kita menggunakan constructor biasa, bukan Singleton.
-  // Ini memastikan setiap kali HomeView dibuka, controller baru dibuat
-  // dan mencegah error "ChangeNotifier disposed".
-  HomeController() {
-    _model = HomeModel(
-      studentName: "Edra Edogawa",
-      nim: "2022103703256",
-      programStudi: "Informatika",
-      semester: "Genap",
-      year: "2025",
-      profileImageUrl: "https://i.pravatar.cc/300",
-      email: "edra.edogawa@email.com",
-      phoneNumber: "", // Awalnya kosong
-      socialMedia: "", // Awalnya kosong
-    );
-  }
+  // Singleton pattern with lazy initialization
+  static final HomeController _instance = HomeController._internal();
+  factory HomeController() => _instance;
 
-  // --- DATA PROFILE ---
-  late final HomeModel _model;
-  HomeModel get model => _model;
+  HomeController._internal(); // Don't load data in constructor!
 
-  // --- DATA KRS SAYA (SHARED DATA) ---
-  // Data dummy untuk contoh jadwal yang sudah aktif
-  List<Map<String, dynamic>> myKrsList = [
-    {
-      "name": "Pemrograman Web",
-      "time": "13.00 - 15.30",
-      "sks": 3,
-      "status": "Aktif",
-      "day": "Senin",
-    },
-    {
-      "name": "Logika Komputasi",
-      "time": "08.40 - 09.30",
-      "sks": 2,
-      "status": "Aktif",
-      "day": "Selasa",
-    },
-    {
-      "name": "Kalkulus Lanjut",
-      "time": "08.00 - 18.00",
-      "sks": 3,
-      "status": "Aktif",
-      "day": "Rabu",
-    },
-  ];
+  User? _currentUser;
+  List<DaftarKelasMahasiswa> _myKrsList = [];
+  bool _isLoading = false;
+  String? _error;
+  bool _hasLoadedOnce = false; // Track if data was loaded
 
-  // Getter untuk mendapatkan list kelas yang statusnya 'Aktif'
+  User? get currentUser => _currentUser;
+  List<DaftarKelasMahasiswa> get myKrsList => _myKrsList;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  // Getter untuk backward compatibility dengan UI lama
+  User? get model => _currentUser;
+
+  // Getter untuk data profile
+  String get studentName => _currentUser?.nama ?? '';
+  String get nim => _currentUser?.nim ?? '';
+  String get programStudi => _currentUser?.prodi ?? '';
+  int get semester => _currentUser?.semester ?? 0;
+  String get email => _currentUser?.email ?? '';
+  String? get phoneNumber => _currentUser?.noHp;
+  String? get profileImageUrl => _currentUser?.photoUrl;
+  double get ipk => _currentUser?.ipk ?? 0.0;
+  int get maxSks => _currentUser?.maxSks ?? 24;
+
+  // Getter untuk KRS yang approved (untuk backward compatibility dengan UI yang ada)
   List<Map<String, dynamic>> get approvedCoursesForSchedule {
-    return myKrsList.where((course) => course['status'] == 'Aktif').toList();
+    return _myKrsList.where((krs) => krs.status == 'approved').map((krs) {
+      final detail = krs.kelasDetail;
+      return {
+        'name': detail?.namaMataKuliah ?? '',
+        'time': detail?.jadwal ?? '',
+        'sks': detail?.sks ?? 0,
+        'status': 'Aktif',
+        'day': detail?.hari ?? '',
+      };
+    }).toList();
   }
 
-  // Getter untuk menghitung total SKS
+  // Getter untuk total SKS
   int get totalSksTaken {
-    if (myKrsList.isEmpty) return 0;
-    return myKrsList.fold(0, (sum, course) => sum + (course['sks'] as int));
+    if (_myKrsList.isEmpty) return 0;
+    return _myKrsList
+        .where((krs) => krs.status == 'approved')
+        .fold(0, (sum, krs) => sum + (krs.kelasDetail?.sks ?? 0));
   }
 
-  // --- LOGIC / ACTIONS ---
-
-  // Menambahkan kelas baru (dipanggil dari form KRS jika diperlukan)
-  void addActiveKrs(String name, String schedule, int sks, String day) {
-    // Cek apakah kelas sudah ada agar tidak duplikat
-    bool exists = myKrsList.any(
-      (item) => item['name'] == name && item['status'] == 'Aktif',
-    );
-
-    if (!exists) {
-      myKrsList.add({
-        "name": name,
-        "time": schedule,
-        "sks": sks,
-        "status": "Aktif",
-        "day": day,
-      });
-      notifyListeners(); // Memberi tahu UI untuk update
+  // Load user profile dan KRS dari backend
+  Future<void> loadUserData() async {
+    // Prevent multiple concurrent loads
+    if (_isLoading) {
+      print('HomeController: Already loading, skipping...');
+      return;
     }
-  }
 
-  // Menambahkan ke waiting list
-  void addWaitingList(String name, String schedule, int sks, String day) {
-    myKrsList.add({
-      "name": name,
-      "time": schedule,
-      "sks": sks,
-      "status": "Waiting List",
-      "day": day,
-    });
+    print('HomeController: Starting loadUserData...');
+    _isLoading = true;
+    _error = null;
     notifyListeners();
-  }
 
-  // Menghapus item KRS berdasarkan index
-  void removeKrsItem(int index) {
-    if (index >= 0 && index < myKrsList.length) {
-      myKrsList.removeAt(index);
+    try {
+      // Load user profile
+      await loadProfile();
+      print('HomeController: Profile loaded - ${_currentUser?.nama}');
+
+      // Load user's KRS
+      await loadMyKrs();
+      print('HomeController: KRS loaded - ${_myKrsList.length} items');
+
+      _hasLoadedOnce = true;
+    } catch (e) {
+      print('HomeController: Error in loadUserData - $e');
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
       notifyListeners();
+      print('HomeController: loadUserData completed');
     }
   }
 
-  // Update data profil pengguna
-  void updateProfile({String? phone, String? email, String? social}) {
-    if (phone != null) _model.phoneNumber = phone;
-    if (email != null) _model.email = email;
-    if (social != null) _model.socialMedia = social;
+  // Load user profile dari API
+  Future<void> loadProfile() async {
+    try {
+      final response = await ApiService.get(ApiConfig.profile);
 
+      if (response['success'] == true) {
+        _currentUser = User.fromJson(response['data']);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading profile: $e');
+      // Try to load from local storage
+      final userData = await AuthHelper.getUserData();
+      if (userData['name'] != null) {
+        _currentUser = User(
+          id: userData['userId'],
+          nim: userData['nim'] ?? '',
+          nama: userData['name'] ?? '',
+          email: userData['email'] ?? '',
+          prodi: userData['prodi'],
+          semester: userData['semester'],
+        );
+        notifyListeners();
+      }
+    }
+  }
+
+  // Load KRS mahasiswa dari API
+  Future<void> loadMyKrs() async {
+    try {
+      final response = await ApiService.get(ApiConfig.krs);
+
+      if (response['success'] == true) {
+        final List<dynamic> data = response['data'];
+        _myKrsList = data
+            .map((json) => DaftarKelasMahasiswa.fromJson(json))
+            .toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading KRS: $e');
+      _myKrsList = [];
+    }
+  }
+
+  // Refresh data
+  Future<void> refreshData() async {
+    await loadUserData();
+  }
+
+  // Update profile
+  Future<bool> updateProfile({
+    String? name,
+    String? phoneNumber,
+    String? photoUrl,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final body = <String, dynamic>{};
+      if (name != null) body['name'] = name;
+      if (phoneNumber != null) body['phoneNumber'] = phoneNumber;
+      if (photoUrl != null) body['photoUrl'] = photoUrl;
+
+      final response = await ApiService.put(ApiConfig.userProfile, body);
+
+      if (response['success'] == true) {
+        _currentUser = User.fromJson(response['data']);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Logout
+  Future<void> logout() async {
+    await AuthHelper.logout();
+    _currentUser = null;
+    _myKrsList = [];
     notifyListeners();
+  }
+
+  // Legacy methods untuk backward compatibility
+  void removeKrsItem(int index) {
+    if (index >= 0 && index < _myKrsList.length) {
+      // Akan dihandle di KRS controller
+    }
   }
 }

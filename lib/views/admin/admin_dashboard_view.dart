@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../welcome_view.dart';
 import 'admin_user_management_view.dart';
 import 'admin_matkul_management_view.dart';
+import 'admin_kelas_management_view.dart';
 
 class AdminDashboardView extends StatefulWidget {
   const AdminDashboardView({super.key});
@@ -18,6 +19,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
   final List<Widget> _pages = [
     const AdminUserManagementView(),
     const AdminMatkulManagementView(),
+    const AdminKelasManagementView(),
   ];
 
   void _handleLogout() async {
@@ -153,6 +155,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     return [
       _buildMenuItem(index: 0, icon: Icons.person, label: 'Kelola User'),
       _buildMenuItem(index: 1, icon: Icons.book, label: 'Kelola Mata Kuliah'),
+      _buildMenuItem(index: 2, icon: Icons.schedule, label: 'Daftar Kelas'),
     ];
   }
 

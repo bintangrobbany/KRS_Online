@@ -23,11 +23,11 @@ class _KtmViewState extends State<KtmView> {
   @override
   Widget build(BuildContext context) {
     // Ambil data dari controller
-    final String name = _controller.model.studentName;
-    final String nim =
-        "123456789012345"; // Bisa diganti dynamic dari model jika ada
-    final String prodi = "Teknik Informatika";
-    final String imageUrl = _controller.model.profileImageUrl;
+    final String name = _controller.currentUser?.studentName ?? 'User';
+    final String nim = _controller.currentUser?.nim ?? "000000000000000";
+    final String prodi =
+        _controller.currentUser?.programStudi ?? "Program Studi";
+    final String? imageUrl = _controller.currentUser?.profileImageUrl;
 
     return Scaffold(
       backgroundColor: bgCanvas,
@@ -135,7 +135,12 @@ class _KtmViewState extends State<KtmView> {
                               ),
                               child: CircleAvatar(
                                 radius: 30,
-                                backgroundImage: NetworkImage(imageUrl),
+                                backgroundImage: imageUrl != null
+                                    ? NetworkImage(imageUrl)
+                                    : null,
+                                child: imageUrl == null
+                                    ? Icon(Icons.person, size: 40)
+                                    : null,
                               ),
                             ),
                             const SizedBox(width: 16),

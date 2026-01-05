@@ -28,7 +28,7 @@ class _FormMatkulViewState extends State<FormMatkulView> {
       _kodeController.text = widget.matkulEdit!.kode;
       _namaController.text = widget.matkulEdit!.nama;
       _sksController.text = widget.matkulEdit!.sks.toString();
-      _jadwalController.text = widget.matkulEdit!.jadwal;
+      // jadwal is managed separately in Jadwal collection
     }
   }
 
@@ -39,7 +39,6 @@ class _FormMatkulViewState extends State<FormMatkulView> {
         kode: _kodeController.text,
         nama: _namaController.text,
         sks: int.tryParse(_sksController.text) ?? 0,
-        jadwal: _jadwalController.text,
       );
 
       // Kirim balik ke Dashboard

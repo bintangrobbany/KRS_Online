@@ -1,278 +1,244 @@
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import '../config/api_config.dart';
 import '../models/krs_model.dart';
 
-class KRSController {
-  static final KRSController _instance = KRSController._internal();
-  static SharedPreferences? _prefsInstance;
-
-  factory KRSController() {
-    return _instance;
-  }
-
-  KRSController._internal();
-
-  SharedPreferences? _prefs;
-  bool _initialized = false;
-
-  // In-memory storage for current session
+class KRSController extends ChangeNotifier {
   List<KelasMataKuliah> _availableClasses = [];
-  List<DaftarKelasMahasiswa> _enrolledClasses = [];
-  List<DaftarKelasMahasiswa> _queuedClasses = [];
-  String? _currentMahasiswaUid;
+  List<DaftarKelasMahasiswa> _myKrsList = [];
+  bool _isLoading = false;
+  String? _error;
 
-  // Callbacks for UI updates
-  List<Function()> _listeners = [];
+  List<KelasMataKuliah> get availableClasses => _availableClasses;
+  List<DaftarKelasMahasiswa> get myKrsList => _myKrsList;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
-  Future<void> _ensureInitialized() async {
-    if (_initialized && _prefs != null) return;
-
-    if (_prefsInstance != null) {
-      _prefs = _prefsInstance;
-    } else {
-      _prefs = await SharedPreferences.getInstance();
-      _prefsInstance = _prefs;
-    }
-
-    if (!_initialized) {
-      _currentMahasiswaUid =
-          _prefs?.getString('userUID') ??
-          _prefs?.getString('username') ??
-          'default_user';
-      await _loadEnrollmentData();
-      _initialized = true;
-    }
+  // Get enrolled classes (approved + pending)
+  List<DaftarKelasMahasiswa> get enrolledClasses {
+    return _myKrsList
+        .where((krs) => krs.status == 'approved' || krs.status == 'pending')
+        .toList();
   }
 
-  Future<void> initialize(SharedPreferences prefs) async {
-    _prefs = prefs;
-    _prefsInstance = prefs;
-    _currentMahasiswaUid =
-        _prefs!.getString('userUID') ??
-        _prefs!.getString('username') ??
-        'default_user';
-    await _loadEnrollmentData();
-    _initialized = true;
+  // Get queued/pending classes
+  List<DaftarKelasMahasiswa> get queuedClasses {
+    return _myKrsList.where((krs) => krs.status == 'pending').toList();
   }
 
-  Future<void> _loadEnrollmentData() async {
-    final enrolledJson =
-        _prefs?.getString('enrolled_classes_$_currentMahasiswaUid') ?? '[]';
-    final queuedJson =
-        _prefs?.getString('queued_classes_$_currentMahasiswaUid') ?? '[]';
+  // Load available classes (jadwal) dari backend
+  Future<void> loadAvailableClasses({
+    String? prodi,
+    int? semester,
+    String? hari,
+    String? search,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
 
     try {
-      _enrolledClasses = (jsonDecode(enrolledJson) as List)
-          .map((e) => DaftarKelasMahasiswa.fromJson(e))
-          .toList();
-      _queuedClasses = (jsonDecode(queuedJson) as List)
-          .map((e) => DaftarKelasMahasiswa.fromJson(e))
-          .toList();
+      String endpoint = '${ApiConfig.jadwal}?format=kelas';
+      if (prodi != null) endpoint += '&prodi=$prodi';
+      if (semester != null) endpoint += '&semester=$semester';
+      if (hari != null) endpoint += '&hari=$hari';
+      if (search != null) endpoint += '&search=$search';
+
+      final response = await ApiService.get(endpoint);
+
+      if (response['success'] == true) {
+        final List<dynamic> data = response['data'];
+        _availableClasses = data
+            .map((json) => KelasMataKuliah.fromJson(json))
+            .toList();
+      }
     } catch (e) {
-      print('Error loading enrollment data: $e');
-      _enrolledClasses = [];
-      _queuedClasses = [];
+      _error = e.toString();
+      _availableClasses = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
+  // Load my KRS
+  Future<void> loadMyKrs({String? semester, String? tahunAjaran}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      String endpoint = ApiConfig.krs;
+      List<String> params = [];
+      if (semester != null) params.add('semester=$semester');
+      if (tahunAjaran != null) params.add('tahunAjaran=$tahunAjaran');
+      if (params.isNotEmpty) {
+        endpoint += '?${params.join('&')}';
+      }
+
+      final response = await ApiService.get(endpoint);
+
+      if (response['success'] == true) {
+        final List<dynamic> data = response['data'];
+        _myKrsList = data
+            .map((json) => DaftarKelasMahasiswa.fromJson(json))
+            .toList();
+      }
+    } catch (e) {
+      _error = e.toString();
+      _myKrsList = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Add class to KRS
+  Future<bool> addKRS({
+    required String jadwalId,
+    required String semester,
+    required String tahunAjaran,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final response = await ApiService.post(ApiConfig.krs, {
+        'jadwalId': jadwalId,
+        'semester': semester,
+        'tahunAjaran': tahunAjaran,
+      });
+
+      if (response['success'] == true) {
+        // Reload KRS list
+        await loadMyKrs(semester: semester, tahunAjaran: tahunAjaran);
+        return true;
+      }
+
+      _error = response['error'] ?? 'Gagal menambahkan KRS';
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Delete KRS
+  Future<bool> deleteKRS(String krsId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final response = await ApiService.delete('${ApiConfig.krs}/$krsId');
+
+      if (response['success'] == true) {
+        // Remove from local list
+        _myKrsList.removeWhere((krs) => krs.id == krsId);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
+      _error = response['error'] ?? 'Gagal menghapus KRS';
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Check if class is already enrolled
+  bool isClassEnrolled(String jadwalId) {
+    return _myKrsList.any((krs) => krs.jadwalId == jadwalId);
+  }
+
+  // Get classes with enrollment status
+  List<(KelasMataKuliah, bool)> getClassesWithStatus() {
+    return _availableClasses.map((kelas) {
+      final isEnrolled = isClassEnrolled(kelas.id);
+      return (kelas, isEnrolled);
+    }).toList();
+  }
+
+  // Calculate total SKS
+  int getTotalSks() {
+    return _myKrsList
+        .where((krs) => krs.status == 'approved' || krs.status == 'pending')
+        .fold(0, (sum, krs) => sum + (krs.kelasDetail?.sks ?? 0));
+  }
+
+  // Clear error
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // Refresh all data
+  Future<void> refresh({
+    String? semester,
+    String? tahunAjaran,
+    String? prodi,
+  }) async {
+    await Future.wait([
+      loadAvailableClasses(
+        prodi: prodi,
+        semester: semester != null ? int.tryParse(semester) : null,
+      ),
+      loadMyKrs(semester: semester, tahunAjaran: tahunAjaran),
+    ]);
+  }
+
+  // ===== Backward Compatibility Methods untuk Old Views =====
+
+  // Set available classes (dari local data)
   void setAvailableClasses(List<KelasMataKuliah> classes) {
     _availableClasses = classes;
     notifyListeners();
   }
 
-  List<KelasMataKuliah> getAvailableClasses() => _availableClasses;
-
-  List<DaftarKelasMahasiswa> getEnrolledClasses() => _enrolledClasses;
-
-  List<DaftarKelasMahasiswa> getQueuedClasses() => _queuedClasses;
-
-  // Get all classes combined with enrollment status
-  List<(KelasMataKuliah, DaftarKelasMahasiswa?)> getClassesWithStatus() {
-    List<(KelasMataKuliah, DaftarKelasMahasiswa?)> result = [];
-
-    for (var kelas in _availableClasses) {
-      // Check if enrolled
-      DaftarKelasMahasiswa? enrollment;
-      try {
-        enrollment = _enrolledClasses.firstWhere((e) => e.kelasId == kelas.id);
-      } catch (e) {
-        enrollment = null;
-      }
-
-      // Check if queued
-      DaftarKelasMahasiswa? queue;
-      try {
-        queue = _queuedClasses.firstWhere((e) => e.kelasId == kelas.id);
-      } catch (e) {
-        queue = null;
-      }
-
-      result.add((kelas, enrollment ?? queue));
-    }
-
-    return result;
-  }
-
+  // Enroll class (alias untuk addKRS)
   Future<bool> enrollClass(
-    KelasMataKuliah kelas, {
-    bool isQueue = false,
-  }) async {
-    print(
-      'DEBUG KRSController.enrollClass: Starting for ${kelas.namaMataKuliah}',
+    String jadwalId,
+    String semester,
+    String tahunAjaran,
+  ) async {
+    return await addKRS(
+      jadwalId: jadwalId,
+      semester: semester,
+      tahunAjaran: tahunAjaran,
     );
-    print('DEBUG: _initialized = $_initialized, _prefs = $_prefs');
-
-    // Don't await _ensureInitialized to avoid blocking main thread
-    // Just ensure it's running in background
-    _ensureInitialized();
-
-    // Give a moment for initialization to start
-    await Future.delayed(const Duration(milliseconds: 10));
-
-    print('DEBUG: After delay, _initialized = $_initialized');
-
-    // Check if already enrolled or queued
-    DaftarKelasMahasiswa? existingEnrollment;
-    try {
-      existingEnrollment = _enrolledClasses.firstWhere(
-        (e) => e.kelasId == kelas.id,
-      );
-    } catch (e) {
-      existingEnrollment = null;
-    }
-
-    DaftarKelasMahasiswa? existingQueue;
-    try {
-      existingQueue = _queuedClasses.firstWhere((e) => e.kelasId == kelas.id);
-    } catch (e) {
-      existingQueue = null;
-    }
-
-    if (existingEnrollment != null || existingQueue != null) {
-      print('DEBUG: Already enrolled or queued, returning false');
-      return false; // Already enrolled or queued
-    }
-
-    final enrollment = DaftarKelasMahasiswa(
-      id: _generateId(),
-      mahasiswaUid: _currentMahasiswaUid ?? '',
-      kelasId: kelas.id,
-      namaMataKuliah: kelas.namaMataKuliah,
-      sks: kelas.sks,
-      jadwal: kelas.jadwal,
-      ruangan: kelas.ruangan,
-      tglDaftar: DateTime.now(),
-      status: isQueue ? 'antrian' : 'terdaftar',
-    );
-
-    if (isQueue) {
-      _queuedClasses.add(enrollment);
-    } else {
-      _enrolledClasses.add(enrollment);
-      print(
-        'DEBUG: Added to _enrolledClasses, count = ${_enrolledClasses.length}',
-      );
-    }
-
-    print('DEBUG: Before _saveEnrollmentData');
-    // Save data in background WITHOUT awaiting to avoid blocking
-    _saveEnrollmentData()
-        .then((_) {
-          print('DEBUG: Background save completed');
-        })
-        .catchError((e) {
-          print('DEBUG: Background save error: $e');
-        });
-
-    print('DEBUG: After _saveEnrollmentData trigger (not awaited)');
-
-    notifyListeners();
-    print('DEBUG: enrollClass completed successfully');
-    return true;
   }
 
-  Future<bool> removeEnrollment(String kelasId, {bool isQueued = false}) async {
-    // Don't await _ensureInitialized to avoid blocking
-    _ensureInitialized();
-    await Future.delayed(const Duration(milliseconds: 10));
-
-    if (isQueued) {
-      _queuedClasses.removeWhere((e) => e.kelasId == kelasId);
-    } else {
-      _enrolledClasses.removeWhere((e) => e.kelasId == kelasId);
-    }
-
-    // Save data in background WITHOUT awaiting
-    _saveEnrollmentData().catchError((e) {
-      print('DEBUG: Background save error in removeEnrollment: $e');
-    });
-
-    notifyListeners();
-    return true;
+  // Get enrolled classes (method untuk compatibility)
+  List<DaftarKelasMahasiswa> getEnrolledClasses() {
+    return enrolledClasses;
   }
 
-  Future<bool> moveFromQueueToEnrolled(String kelasId) async {
-    // Don't await _ensureInitialized to avoid blocking
-    _ensureInitialized();
-    await Future.delayed(const Duration(milliseconds: 10));
-
-    final queueIndex = _queuedClasses.indexWhere((e) => e.kelasId == kelasId);
-    if (queueIndex == -1) return false;
-
-    final queuedEnrollment = _queuedClasses[queueIndex];
-    _queuedClasses.removeAt(queueIndex);
-    _enrolledClasses.add(
-      queuedEnrollment.copyWith(status: 'terdaftar', tglDaftar: DateTime.now()),
-    );
-
-    // Save data in background WITHOUT awaiting
-    _saveEnrollmentData().catchError((e) {
-      print('DEBUG: Background save error in moveFromQueueToEnrolled: $e');
-    });
-
-    notifyListeners();
-    return true;
+  // Get queued classes (method untuk compatibility)
+  List<DaftarKelasMahasiswa> getQueuedClasses() {
+    return queuedClasses;
   }
 
-  Future<void> _saveEnrollmentData() async {
-    if (_currentMahasiswaUid == null || _prefs == null) return;
-
-    final enrolledJson = jsonEncode(
-      _enrolledClasses.map((e) => e.toJson()).toList(),
-    );
-    final queuedJson = jsonEncode(
-      _queuedClasses.map((e) => e.toJson()).toList(),
-    );
-
-    await _prefs!.setString(
-      'enrolled_classes_$_currentMahasiswaUid',
-      enrolledJson,
-    );
-    await _prefs!.setString('queued_classes_$_currentMahasiswaUid', queuedJson);
+  // Remove enrollment (alias untuk deleteKRS)
+  Future<bool> removeEnrollment(String krsId) async {
+    return await deleteKRS(krsId);
   }
 
-  void addListener(Function() callback) {
-    _listeners.add(callback);
+  // Add listener
+  void addListener(VoidCallback listener) {
+    // Override untuk support old pattern
+    super.addListener(listener);
   }
 
-  void removeListener(Function() callback) {
-    _listeners.remove(callback);
-  }
-
-  void notifyListeners() {
-    for (var listener in _listeners) {
-      listener();
-    }
-  }
-
-  String _generateId() {
-    return DateTime.now().millisecondsSinceEpoch.toString();
-  }
-
-  Future<void> clearAllEnrollments() async {
-    _enrolledClasses.clear();
-    _queuedClasses.clear();
-    await _saveEnrollmentData();
-    notifyListeners();
+  // Remove listener
+  void removeListener(VoidCallback listener) {
+    // Override untuk support old pattern
+    super.removeListener(listener);
   }
 }

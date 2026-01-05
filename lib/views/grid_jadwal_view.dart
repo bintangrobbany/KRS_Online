@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/grid_jadwal_controller.dart';
-import '../models/grid_jadwal_model.dart';
+import '../models/krs_model.dart';
 
 // --- IMPORT NAV BAR ---
 // Pastikan file-file ini ada di project Anda
@@ -12,7 +12,7 @@ import 'settings_view.dart';
 
 class GridJadwalView extends StatefulWidget {
   // Parameter untuk menerima data dari Daftar Kelas
-  final List<Course>? incomingCourses;
+  final List<KelasMataKuliah>? incomingCourses;
 
   const GridJadwalView({super.key, this.incomingCourses});
 
@@ -45,13 +45,33 @@ class _GridJadwalViewState extends State<GridJadwalView> {
   @override
   void initState() {
     super.initState();
-    // LOGIKA UTAMA: Cek apakah ada kiriman data dari Daftar Kelas?
-    // Jika ada, masukkan ke availableCourses di controller.
+
+    controller.addListener(_onControllerUpdated);
+
+    // Integrasi: jika datang dari Home/DaftarKelas, list yang dikirim adalah
+    // kelas yang sudah terdaftar (enrolled) -> masuk ke takenCourses.
     if (widget.incomingCourses != null && widget.incomingCourses!.isNotEmpty) {
-      setState(() {
-        controller.availableCourses.addAll(widget.incomingCourses!);
-      });
+      controller.setTakenCourses(widget.incomingCourses!);
+      // Tetap load available dari backend (opsional), agar user bisa tambah/atur.
+      Future.microtask(() => controller.loadAvailableCourses());
+    } else {
+      // Jika dibuka langsung tanpa payload, load dari backend.
+      Future.microtask(() => controller.refresh());
     }
+  }
+
+  @override
+  void dispose() {
+    controller.removeListener(_onControllerUpdated);
+    controller.dispose();
+    super.dispose();
+  }
+
+  void _onControllerUpdated() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   // --- NAV BAR LOGIC ---
@@ -123,12 +143,12 @@ class _GridJadwalViewState extends State<GridJadwalView> {
     return days.indexOf(day);
   }
 
-  Widget _buildCourseBlock(Course course) {
-    // Parsing Waktu (Contoh: "07:00")
-    final int startHour = int.parse(course.startTime.split(':')[0]);
-    final int startMinute = int.parse(course.startTime.split(':')[1]);
-    final int endHour = int.parse(course.endTime.split(':')[0]);
-    final int endMinute = int.parse(course.endTime.split(':')[1]);
+  Widget _buildCourseBlock(KelasMataKuliah course) {
+    // Parsing Waktu dari jamMulai dan jamSelesai
+    final int startHour = int.parse(course.jamMulai?.split(':')[0] ?? '7');
+    final int startMinute = int.parse(course.jamMulai?.split(':')[1] ?? '0');
+    final int endHour = int.parse(course.jamSelesai?.split(':')[0] ?? '9');
+    final int endMinute = int.parse(course.jamSelesai?.split(':')[1] ?? '0');
 
     // Hitung Posisi Y (Top)
     final double topOffset =
@@ -142,7 +162,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
     final double blockHeight = durationHours * _hourHeight;
 
     // Hitung Posisi X (Left) berdasarkan Hari
-    final int dayIndex = _dayToIndex(course.day);
+    final int dayIndex = _dayToIndex(course.hari ?? '');
     if (dayIndex == -1) return const SizedBox();
 
     // Warna selang-seling (Logic sederhana)
@@ -164,7 +184,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              course.name,
+              course.namaMataKuliah,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: textDark,
@@ -174,7 +194,10 @@ class _GridJadwalViewState extends State<GridJadwalView> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            Text(course.code, style: TextStyle(color: textDark, fontSize: 8)),
+            Text(
+              course.kodeMataKuliah,
+              style: TextStyle(color: textDark, fontSize: 8),
+            ),
           ],
         ),
       ),
@@ -234,7 +257,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
           ],
         ),
         // Blok jadwal dari takenCourses ditampilkan di sini
-        ...controller.takenCourses.map((c) => _buildCourseBlock(c)).toList(),
+        ...controller.takenCourses.map((c) => _buildCourseBlock(c)),
       ],
     );
   }
@@ -242,10 +265,10 @@ class _GridJadwalViewState extends State<GridJadwalView> {
   // --- HELPER LIST (TERSEDIA / DIAMBIL) ---
   Widget _buildCourseListSection({
     required String title,
-    required List<Course> courses,
+    required List<KelasMataKuliah> courses,
     required IconData actionIcon,
     required Color actionColor,
-    required Function(Course) onAction,
+    required Function(KelasMataKuliah) onAction,
     String emptyMessage = "Tidak ada data.",
   }) {
     return Column(
@@ -297,7 +320,7 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            course.name,
+                            course.namaMataKuliah,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: textDark,
@@ -306,11 +329,11 @@ class _GridJadwalViewState extends State<GridJadwalView> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${course.code} - ${course.sks} SKS',
+                            '${course.kodeMataKuliah} - ${course.sks} SKS',
                             style: TextStyle(color: textGrey, fontSize: 14),
                           ),
                           Text(
-                            '${course.day}, ${course.startTime} - ${course.endTime}',
+                            '${course.hari}, ${course.jamMulai} - ${course.jamSelesai}',
                             style: TextStyle(color: primaryGreen, fontSize: 12),
                           ),
                         ],
@@ -346,86 +369,99 @@ class _GridJadwalViewState extends State<GridJadwalView> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Column(
-          children: [
-            // 1. KARTU GRID JADWAL
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(24),
+      body:
+          controller.isLoading &&
+              controller.takenCourses.isEmpty &&
+              controller.availableCourses.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : (controller.error != null)
+          ? Center(
+              child: Text(
+                controller.error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
               ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Grid Jadwal',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: textDark,
+                  // 1. KARTU GRID JADWAL
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Grid Jadwal',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: textDark,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: primaryGreen.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '${controller.totalSks} SKS',
+                                style: TextStyle(
+                                  color: primaryGreen,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: primaryGreen.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${controller.totalSks} SKS',
-                          style: TextStyle(
-                            color: primaryGreen,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+                        _buildTimelineGrid(),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  _buildTimelineGrid(),
+
+                  // 2. LIST KELAS DIAMBIL (Muncul di Grid)
+                  _buildCourseListSection(
+                    title: "Kelas Yang Diambil",
+                    courses: controller.takenCourses,
+                    actionIcon: Icons.delete_outline,
+                    actionColor: Colors.red,
+                    emptyMessage: "Belum ada kelas yang diletakkan di grid.",
+                    onAction: (course) {
+                      setState(() => controller.removeCourse(course));
+                    },
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 3. LIST KELAS TERSEDIA (Dari Backend/Daftar Kelas)
+                  _buildCourseListSection(
+                    title: "Kelas Yang Tersedia",
+                    courses: controller.availableCourses,
+                    actionIcon: Icons.add_circle_outline,
+                    actionColor: primaryGreen,
+                    emptyMessage: "Silakan pilih kelas dari menu Daftar Kelas.",
+                    onAction: (course) {
+                      setState(() => controller.addCourse(course));
+                    },
+                  ),
+
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // 2. LIST KELAS DIAMBIL (Muncul di Grid)
-            _buildCourseListSection(
-              title: "Kelas Yang Diambil",
-              courses: controller.takenCourses,
-              actionIcon: Icons.delete_outline,
-              actionColor: Colors.red,
-              emptyMessage: "Belum ada kelas yang diletakkan di grid.",
-              onAction: (course) {
-                setState(() => controller.removeCourse(course));
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            // 3. LIST KELAS TERSEDIA (Dari Daftar Kelas)
-            _buildCourseListSection(
-              title: "Kelas Yang Tersedia",
-              courses: controller.availableCourses,
-              actionIcon: Icons.add_circle_outline,
-              actionColor: primaryGreen,
-              emptyMessage: "Silakan pilih kelas dari menu Daftar Kelas.",
-              onAction: (course) {
-                setState(() => controller.addCourse(course));
-              },
-            ),
-
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
       bottomNavigationBar: _buildBottomNavBar(context),
     );
   }

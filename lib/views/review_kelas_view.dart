@@ -28,11 +28,15 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
   void initState() {
     super.initState();
     _krsController.addListener(_onKrsUpdated);
+
+    // Load KRS saat halaman dibuka agar list selalu sinkron.
+    _krsController.loadMyKrs();
   }
 
   @override
   void dispose() {
     _krsController.removeListener(_onKrsUpdated);
+    _krsController.dispose();
     super.dispose();
   }
 
@@ -44,7 +48,7 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
     });
   }
 
-  void _deleteEnrollment(String kelasId, bool isQueued) {
+  void _deleteEnrollment(String krsId, bool isQueued) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -61,21 +65,31 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
           ),
           TextButton(
             onPressed: () async {
-              await _krsController.removeEnrollment(
-                kelasId,
-                isQueued: isQueued,
-              );
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isQueued
-                        ? "Dihapus dari antrean"
-                        : "Pendaftaran dibatalkan",
+              final ok = await _krsController.removeEnrollment(krsId);
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok
+                          ? (isQueued
+                                ? "Dihapus dari antrean"
+                                : "Pendaftaran dibatalkan")
+                          : (_krsController.error ??
+                                "Gagal menghapus pendaftaran"),
+                    ),
+                    backgroundColor: ok ? Colors.red : Colors.orange,
                   ),
-                  backgroundColor: Colors.red,
-                ),
-              );
+                );
+
+                // Hindari UI "kosong" karena error state menimpa list.
+                if (!ok) {
+                  _krsController.clearError();
+                } else {
+                  // Sync ulang agar list benar-benar sesuai data backend.
+                  await _krsController.loadMyKrs();
+                }
+              }
             },
             child: const Text("Hapus", style: TextStyle(color: Colors.red)),
           ),
@@ -156,7 +170,8 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
   // --- END PERBAIKAN NAV BAR ---
 
   Widget _buildKrsItem(DaftarKelasMahasiswa enrollment, int index) {
-    bool isQueued = enrollment.status == 'antrian';
+    final bool isQueued =
+        enrollment.status == 'pending' || enrollment.status == 'antrian';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
@@ -168,7 +183,7 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  enrollment.namaMataKuliah,
+                  enrollment.namaMataKuliah ?? '-',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -177,7 +192,7 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "${enrollment.jadwal} / ${enrollment.sks} sks",
+                  "${enrollment.jadwal ?? '-'} / ${enrollment.sks ?? 0} sks",
                   style: TextStyle(color: textGrey, fontSize: 13),
                 ),
               ],
@@ -195,7 +210,7 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
               ),
               const SizedBox(width: 12),
               GestureDetector(
-                onTap: () => _deleteEnrollment(enrollment.kelasId, isQueued),
+                onTap: () => _deleteEnrollment(enrollment.id, isQueued),
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
@@ -218,12 +233,22 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
 
   @override
   Widget build(BuildContext context) {
-    final enrolledClasses = _krsController.getEnrolledClasses();
-    final queuedClasses = _krsController.getQueuedClasses();
+    // Jangan pakai getEnrolledClasses + getQueuedClasses karena keduanya bisa
+    // sama-sama mengandung status 'pending' sehingga item tampil dobel.
+    final allKrs = _krsController.myKrsList;
+    final enrolledClasses = allKrs
+        .where((e) => e.status == 'approved')
+        .toList();
+    final queuedClasses = allKrs
+        .where((e) => e.status == 'pending' || e.status == 'antrian')
+        .toList();
     final allEnrollments = [...enrolledClasses, ...queuedClasses];
 
-    // Calculate total SKS dari enrolled classes saja
-    int totalSks = enrolledClasses.fold<int>(0, (sum, e) => sum + e.sks);
+    // Total SKS hanya dari yang terdaftar (approved). Pending = antrean.
+    final totalSks = enrolledClasses.fold<int>(
+      0,
+      (sum, e) => sum + (e.sks ?? 0),
+    );
 
     return Scaffold(
       backgroundColor: bgCanvas,
@@ -332,8 +357,21 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
                     ),
                     const SizedBox(height: 20),
                     Expanded(
-                      child: allEnrollments.isEmpty
-                          ? const Center(child: Text("Belum ada kelas diambil"))
+                      child: _krsController.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : allEnrollments.isEmpty
+                          ? Center(
+                              child: Text(
+                                _krsController.error ??
+                                    "Belum ada kelas diambil",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: _krsController.error != null
+                                      ? Colors.red
+                                      : textDark,
+                                ),
+                              ),
+                            )
                           : ListView.builder(
                               itemCount: allEnrollments.length,
                               itemBuilder: (context, index) {

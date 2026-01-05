@@ -6,7 +6,8 @@ class PersonalInformationView extends StatefulWidget {
   const PersonalInformationView({super.key});
 
   @override
-  State<PersonalInformationView> createState() => _PersonalInformationViewState();
+  State<PersonalInformationView> createState() =>
+      _PersonalInformationViewState();
 }
 
 class _PersonalInformationViewState extends State<PersonalInformationView> {
@@ -49,7 +50,13 @@ class _PersonalInformationViewState extends State<PersonalInformationView> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -58,7 +65,10 @@ class _PersonalInformationViewState extends State<PersonalInformationView> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                Text(
+                  label,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   isNotSet ? belumDiaturText : value,
@@ -88,12 +98,28 @@ class _PersonalInformationViewState extends State<PersonalInformationView> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            infoCard(Icons.badge_outlined, 'Nama Lengkap', model.studentName),
-            infoCard(Icons.numbers_outlined, 'NIM', model.nim),
-            infoCard(Icons.school_outlined, 'Program Studi', model.programStudi),
-            infoCard(Icons.email_outlined, 'Email', model.email),
-            infoCard(Icons.phone_outlined, 'Nomor Telepon', model.phoneNumber),
-            infoCard(Icons.group_outlined, 'Media Sosial', model.socialMedia),
+            infoCard(
+              Icons.badge_outlined,
+              'Nama Lengkap',
+              model?.studentName ?? '-',
+            ),
+            infoCard(Icons.numbers_outlined, 'NIM', model?.nim ?? '-'),
+            infoCard(
+              Icons.school_outlined,
+              'Program Studi',
+              model?.programStudi ?? '-',
+            ),
+            infoCard(Icons.email_outlined, 'Email', model?.email ?? '-'),
+            infoCard(
+              Icons.phone_outlined,
+              'Nomor Telepon',
+              model?.phoneNumber ?? '-',
+            ),
+            infoCard(
+              Icons.group_outlined,
+              'Media Sosial',
+              model?.socialMedia ?? '-',
+            ),
           ],
         ),
       ),

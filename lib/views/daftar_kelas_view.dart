@@ -2,11 +2,11 @@
 
 import 'package:flutter/material.dart';
 import '../controllers/krs_controller.dart';
+import '../controllers/saved_classes_controller.dart';
 import '../models/krs_model.dart';
 
 // Import Integrasi
 import 'grid_jadwal_view.dart';
-import '../models/grid_jadwal_model.dart'; // <--- Import Model Course (Solusi Error 1)
 
 // Import Nav Bar Items
 import 'notifikasi_view.dart';
@@ -24,6 +24,7 @@ class DaftarKelasView extends StatefulWidget {
 
 class _DaftarKelasViewState extends State<DaftarKelasView> {
   final KRSController _krsController = KRSController();
+  final SavedClassesController _savedController = SavedClassesController();
 
   final Color bgCanvas = const Color(0xFFE8DFCD);
   final Color primaryGreen = const Color(0xFF054F40);
@@ -38,72 +39,74 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   String _selectedSks = "Semua SKS";
   String _selectedSort = "Terbaru";
 
-  // Data Dummy Master (Data Anda sudah dikembalikan)
-  final List<KelasMataKuliah> _masterClassList = [
-    KelasMataKuliah(
-      kodeMataKuliah: 'IF320',
-      namaMataKuliah: 'Pemrograman Web',
-      sks: 3,
-      dosen: 'Dr. Budi',
-      ruangan: 'R401',
-      jadwal: 'Senin, 13:00-15:30',
-      kapasitas: 30,
-      pendaftarSaat: 30,
-    ),
-    KelasMataKuliah(
-      kodeMataKuliah: 'IF402',
-      namaMataKuliah: 'Algoritma & Struktur Data',
-      sks: 4,
-      dosen: 'Prof. Ahmad',
-      ruangan: 'R402',
-      jadwal: 'Selasa, 07:00-10:20',
-      kapasitas: 40,
-      pendaftarSaat: 25,
-    ),
-    KelasMataKuliah(
-      kodeMataKuliah: 'IF410',
-      namaMataKuliah: 'Kalkulus Lanjut',
-      sks: 4,
-      dosen: 'Dr. Siti',
-      ruangan: 'R403',
-      jadwal: 'Senin, 07:00-10:20',
-      kapasitas: 35,
-      pendaftarSaat: 30,
-    ),
-    KelasMataKuliah(
-      kodeMataKuliah: 'IF350',
-      namaMataKuliah: 'Jaringan Komputer',
-      sks: 3,
-      dosen: 'Dr. Roni',
-      ruangan: 'R404',
-      jadwal: 'Rabu, 13:00-15:30',
-      kapasitas: 25,
-      pendaftarSaat: 25,
-    ),
-  ];
+  // Source of truth untuk daftar kelas adalah backend (/jadwal?format=kelas)
+  // List ini akan diisi dari KRSController.availableClasses
+  List<KelasMataKuliah> _masterClassList = [];
 
   List<KelasMataKuliah> _displayClassList = [];
 
   @override
   void initState() {
     super.initState();
-    _krsController.setAvailableClasses(_masterClassList);
-    _filterAndSortClasses(); // <-- Memastikan data dimuat saat start
     _krsController.addListener(_onKrsUpdated);
+    _savedController.addListener(_onSavedUpdated);
+    _loadInitialData();
   }
 
   @override
   void dispose() {
     _krsController.removeListener(_onKrsUpdated);
+    _savedController.removeListener(_onSavedUpdated);
     super.dispose();
+  }
+
+  Future<void> _loadInitialData() async {
+    // Load daftar kelas + status KRS user agar tombol "Terdaftar/Dalam Antrean" akurat
+    await Future.wait([
+      _krsController.loadMyKrs(),
+      _krsController.loadAvailableClasses(),
+      _savedController.loadSavedClasses(),
+    ]);
+
+    if (!mounted) return;
+    _syncClassesFromControllerAndReapply();
+  }
+
+  void _onSavedUpdated() {
+    if (mounted) setState(() {});
   }
 
   void _onKrsUpdated() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (!mounted) return;
+
+      // Jika availableClasses berubah, sinkronkan & re-apply filter.
+      // Jika hanya myKrsList yang berubah, cukup rebuild agar status tombol berubah.
+      final next = _krsController.availableClasses;
+      final changed = !_listEqualsById(_masterClassList, next);
+
+      if (changed) {
+        _syncClassesFromControllerAndReapply();
+      } else {
         setState(() {});
       }
     });
+  }
+
+  bool _listEqualsById(List<KelasMataKuliah> a, List<KelasMataKuliah> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id) return false;
+    }
+    return true;
+  }
+
+  void _syncClassesFromControllerAndReapply() {
+    _masterClassList = List<KelasMataKuliah>.from(
+      _krsController.availableClasses,
+    );
+    _filterAndSortClasses();
   }
 
   void _filterAndSortClasses() {
@@ -126,29 +129,39 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   }
 
   void _enrollClass(KelasMataKuliah kelas) async {
-    final isQueue = kelas.isFull;
+    // TODO: Get current semester and tahun ajaran from user or settings
+    final currentSemester = kelas.semester?.toString() ?? '7';
+    final currentTahunAjaran = '2023/2024';
 
     try {
-      final success = await _krsController.enrollClass(kelas, isQueue: isQueue);
+      final success = await _krsController.enrollClass(
+        kelas.id,
+        currentSemester,
+        currentTahunAjaran,
+      );
 
       if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                kelas.isFull
+                    ? "Berhasil masuk antrean: ${kelas.namaMataKuliah}"
+                    : "Kelas ${kelas.namaMataKuliah} berhasil didaftarkan!",
+              ),
+              backgroundColor: kelas.isFull ? alertRed : primaryGreen,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isQueue
-                  ? "Berhasil masuk antrean untuk ${kelas.namaMataKuliah}"
-                  : "Kelas ${kelas.namaMataKuliah} berhasil didaftarkan!",
+              _krsController.error ?? "Anda sudah terdaftar untuk kelas ini",
             ),
-            backgroundColor: isQueue ? warningYellow : primaryGreen,
-            duration: const Duration(seconds: 1),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Anda sudah terdaftar untuk kelas ini"),
             backgroundColor: Colors.grey,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
       }
@@ -159,10 +172,45 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
     }
   }
 
+  void _toggleSave(KelasMataKuliah kelas) async {
+    final isSaved = _savedController.isSaved(kelas.id);
+
+    final success = await _savedController.toggleSaveClass(kelas.id);
+
+    if (success && mounted) {
+      // Reload saved classes to update the list
+      await _savedController.loadSavedClasses();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isSaved
+                  ? "Dihapus dari Saved Classes: ${kelas.namaMataKuliah}"
+                  : "Disimpan ke Saved Classes: ${kelas.namaMataKuliah}",
+            ),
+            backgroundColor: isSaved ? Colors.grey : warningYellow,
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      }
+    } else if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_savedController.error ?? "Gagal menyimpan kelas"),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
   // --- LOGIKA UTAMA: NAVIGASI KE GRID JADWAL ---
   void _navigateToGrid() {
-    // 1. Ambil data KRS yang statusnya 'terdaftar'
-    final enrolledKRS = _krsController.getEnrolledClasses();
+    // 1. Ambil data KRS yang statusnya 'approved' (yang benar-benar terdaftar)
+    final enrolledKRS = _krsController.myKrsList
+        .where((krs) => krs.status == 'approved')
+        .toList();
 
     if (enrolledKRS.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,62 +221,17 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
       return;
     }
 
-    // 2. Konversi ke model Course untuk Grid
-    List<Course> coursesToSend = [];
-
-    for (var krsItem in enrolledKRS) {
-      // Parsing string jadwal: "Senin, 13:00-15:30"
-      try {
-        final splitComma = krsItem.jadwal.split(',');
-        if (splitComma.length < 2) continue;
-
-        final day = splitComma[0].trim(); // "Senin"
-        final timePart = splitComma[1].trim(); // "13:00-15:30"
-
-        final splitTime = timePart.split('-');
-        final startTime = splitTime[0].trim();
-        final endTime = splitTime[1].trim();
-
-        // Cari kode MK asli dari master list (karena model Enroll mungkin tidak simpan kode)
-        String code = "KODE";
-        try {
-          final master = _masterClassList.firstWhere(
-            (m) => m.namaMataKuliah == krsItem.namaMataKuliah,
-          );
-          code = master.kodeMataKuliah;
-        } catch (_) {}
-
-        coursesToSend.add(
-          Course(
-            id: krsItem.kelasId,
-            name: krsItem.namaMataKuliah,
-            code: code,
-            sks: krsItem.sks,
-            day: day,
-            startTime: startTime,
-            endTime: endTime,
-          ),
-        );
-      } catch (e) {
-        print("Error parsing jadwal: $e");
-      }
-    }
+    // 2. Extract KelasMataKuliah from enrolled KRS
+    List<KelasMataKuliah> coursesToSend = enrolledKRS
+        .where((krs) => krs.kelasDetail != null)
+        .map((krs) => krs.kelasDetail!)
+        .toList();
 
     // 3. Pindah Halaman & Kirim Data
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GridJadwalView(incomingCourses: coursesToSend),
-      ),
-    );
-  }
-
-  void _toggleSave(KelasMataKuliah kelas) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("${kelas.namaMataKuliah} disimpan!"),
-        backgroundColor: warningYellow,
-        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -349,12 +352,23 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   }
 
   Widget _buildClassCard(KelasMataKuliah kelas) {
-    final enrolledClasses = _krsController.getEnrolledClasses();
-    final queuedClasses = _krsController.getQueuedClasses();
+    final allKrs = _krsController.myKrsList;
+    final enrolledClasses = allKrs
+        .where((e) => e.status == 'approved')
+        .toList();
+    final queuedClasses = allKrs
+        .where((e) => e.status == 'pending' || e.status == 'antrian')
+        .toList();
 
     final isEnrolled = enrolledClasses.any((e) => e.kelasId == kelas.id);
     final isQueued = queuedClasses.any((e) => e.kelasId == kelas.id);
     final isAlreadyEnrolled = isEnrolled || isQueued;
+
+    final buttonColor = isEnrolled
+        ? Colors.grey
+        : (isQueued || kelas.isFull)
+        ? alertRed
+        : primaryGreen;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -415,7 +429,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                "Sisa ${kelas.slotsAvailable} Slot",
+                kelas.isFull ? "Penuh" : "Sisa ${kelas.slotsAvailable} Slot",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 11,
@@ -437,10 +451,11 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                     height: 36,
                     width: 36,
                     decoration: BoxDecoration(
-                      color: warningYellow,
+                      color: _savedController.isSaved(kelas.id)
+                          ? warningYellow
+                          : warningYellow.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
-                        // <-- Solusi 3: Perbaikan Typo boxBoxShadow
                         BoxShadow(
                           color: warningYellow.withOpacity(0.4),
                           blurRadius: 4,
@@ -448,8 +463,10 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.bookmark_border_rounded,
+                    child: Icon(
+                      _savedController.isSaved(kelas.id)
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
                       color: Colors.white,
                       size: 20,
                     ),
@@ -466,13 +483,13 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                     height: 36,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isAlreadyEnrolled ? Colors.grey : primaryGreen,
+                      color: buttonColor,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         // <-- Solusi 3: Perbaikan Typo boxBoxShadow
                         if (!isAlreadyEnrolled)
                           BoxShadow(
-                            color: primaryGreen.withOpacity(0.4),
+                            color: buttonColor.withOpacity(0.4),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -608,13 +625,24 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
                     ),
                     const SizedBox(height: 20),
                     Expanded(
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: _displayClassList.length,
-                        itemBuilder: (context, index) {
-                          return _buildClassCard(_displayClassList[index]);
-                        },
-                      ),
+                      child: _krsController.isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _krsController.error != null
+                          ? Center(
+                              child: Text(
+                                _krsController.error!,
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: _displayClassList.length,
+                              itemBuilder: (context, index) {
+                                return _buildClassCard(
+                                  _displayClassList[index],
+                                );
+                              },
+                            ),
                     ),
                   ],
                 ),
