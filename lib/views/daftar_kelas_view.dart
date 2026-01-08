@@ -25,6 +25,7 @@ class DaftarKelasView extends StatefulWidget {
 class _DaftarKelasViewState extends State<DaftarKelasView> {
   final KRSController _krsController = KRSController();
   final SavedClassesController _savedController = SavedClassesController();
+  final TextEditingController _searchController = TextEditingController();
 
   final Color bgCanvas = const Color(0xFFE8DFCD);
   final Color primaryGreen = const Color(0xFF054F40);
@@ -55,6 +56,7 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _krsController.removeListener(_onKrsUpdated);
     _savedController.removeListener(_onSavedUpdated);
     super.dispose();
@@ -112,11 +114,26 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
   void _filterAndSortClasses() {
     List<KelasMataKuliah> temp = List.from(_masterClassList);
 
+    // Filter by search query
+    final searchQuery = _searchController.text.toLowerCase();
+    if (searchQuery.isNotEmpty) {
+      temp = temp.where((item) {
+        final namaMk = item.namaMataKuliah.toLowerCase();
+        final kodeMk = item.kodeMataKuliah.toLowerCase();
+        final dosen = (item.dosen ?? '').toLowerCase();
+        return namaMk.contains(searchQuery) ||
+            kodeMk.contains(searchQuery) ||
+            dosen.contains(searchQuery);
+      }).toList();
+    }
+
+    // Filter by SKS
     if (_selectedSks != "Semua SKS") {
       int targetSks = int.parse(_selectedSks.split(' ')[0]);
       temp = temp.where((item) => item.sks == targetSks).toList();
     }
 
+    // Sort
     if (_selectedSort == "Nama A-Z") {
       temp.sort((a, b) => a.namaMataKuliah.compareTo(b.namaMataKuliah));
     } else if (_selectedSort == "Slot Terbanyak") {
@@ -538,38 +555,26 @@ class _DaftarKelasViewState extends State<DaftarKelasView> {
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const TextField(
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          prefixIcon: Icon(Icons.search, color: Colors.white),
-                          hintText: "Search",
-                          hintStyle: TextStyle(color: Colors.white70),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 15),
-                        ),
-                      ),
-                    ),
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: primaryGreen,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
+                  onChanged: (value) {
+                    _filterAndSortClasses();
+                  },
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search, color: Colors.white),
+                    hintText: "Search nama, kode, atau dosen",
+                    hintStyle: TextStyle(color: Colors.white70),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 15),
                   ),
-                  const SizedBox(width: 16),
-                  Container(
-                    height: 52,
-                    width: 52,
-                    decoration: BoxDecoration(
-                      color: primaryGreen,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.tune_rounded, color: Colors.white),
-                  ),
-                ],
+                ),
               ),
             ),
             const SizedBox(height: 24),

@@ -252,46 +252,22 @@ class _ReviewKelasViewState extends State<ReviewKelasView> {
 
     return Scaffold(
       backgroundColor: bgCanvas,
+      appBar: AppBar(
+        backgroundColor: bgCanvas,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: textDark),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          "KRS Saya",
+          style: TextStyle(color: textDark, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: primaryGreen,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const TextField(
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          prefixIcon: Icon(Icons.search, color: Colors.white),
-                          hintText: "Search",
-                          hintStyle: TextStyle(color: Colors.white70),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 15),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Container(
-                    height: 52,
-                    width: 52,
-                    decoration: BoxDecoration(
-                      color: primaryGreen,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(Icons.tune_rounded, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),

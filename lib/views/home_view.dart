@@ -9,7 +9,6 @@ import '../models/krs_model.dart';
 import 'daftar_kelas_view.dart';
 import 'profile_view.dart';
 import 'settings_view.dart';
-import 'form_krs_view.dart';
 import 'review_kelas_view.dart';
 import 'grid_jadwal_view.dart';
 import 'saved_classes_view.dart';
@@ -371,21 +370,6 @@ class _HomeViewState extends State<HomeView> {
       clipBehavior: Clip.none,
       child: Row(
         children: [
-          SizedBox(
-            width: 120,
-            child: ElevatedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const FormKrsView()),
-              ).then((_) => _refreshKrsData()),
-              style: getStyle(primaryGreen),
-              child: const Text(
-                'Form KRS',
-                style: TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
           SizedBox(
             width: 120,
             child: ElevatedButton(

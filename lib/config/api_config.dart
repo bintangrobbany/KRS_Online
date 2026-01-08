@@ -1,28 +1,38 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConfig {
-  // Base URL - Ganti dengan IP komputer Anda atau gunakan emulator
-  // IMPORTANT: Jika emulator tidak bisa connect ke 10.0.2.2, gunakan IP lokal komputer
-  //
-  // Cara cek IP komputer:
-  // Windows: ipconfig | Select-String "IPv4"
-  // Mac/Linux: ifconfig | grep "inet "
-  //
-  // Untuk Android Emulator: 10.0.2.2 (jika tidak work, gunakan IP lokal)
-  // Untuk iOS Simulator: localhost atau 127.0.0.1
-  // Untuk Real Device: IP Address komputer (contoh: 192.168.1.10)
+  // ========================================
+  // PRODUCTION & DEVELOPMENT CONFIGURATION
+  // ========================================
 
-  // GUNAKAN SALAH SATU (uncomment yang sesuai):
+  // PRODUCTION URL (Backend hosted on Netlify)
+  static const String _productionUrl =
+      'https://backend-krs-online.netlify.app/api';
 
-  // Option 1: Android Emulator (default)
-  // static const String baseUrl = 'http://10.0.2.2:3000/api';
+  // DEVELOPMENT URL (Local backend for testing)
+  // Update IP sesuai komputer Anda: ipconfig (Windows) atau ifconfig (Mac/Linux)
+  static const String _developmentUrl = 'http://192.168.1.10:3000/api';
 
-  // Option 2: Mobile Hotspot (laptop jadi hotspot, HP connect ke laptop)
-  // static const String baseUrl = 'http://192.168.137.1:3000/api';
+  // Auto-detect: Release build = production, Debug build = development
+  // Bisa juga manual override dengan set _useProduction = true
+  static const bool _useProduction =
+      true; // Set true untuk test production atau build APK
 
-  // Option 3: IP Lokal untuk Real Device di Wi-Fi yang sama (Wi-Fi Cafe)
-  static const String baseUrl = 'http://172.16.176.59:3000/api';
+  static String get baseUrl {
+    // Jika manual override diset
+    if (_useProduction) return _productionUrl;
 
-  // Option 4: iOS Simulator
-  // static const String baseUrl = 'http://localhost:3000/api';
+    // Auto detect berdasarkan build mode
+    return kReleaseMode ? _productionUrl : _developmentUrl;
+  }
+
+  // ========================================
+  // DEVELOPMENT URLS (untuk referensi)
+  // ========================================
+  // Android Emulator: 'http://10.0.2.2:3000/api'
+  // Mobile Hotspot: 'http://192.168.137.1:3000/api'
+  // iOS Simulator: 'http://localhost:3000/api'
+  // Real Device (same Wi-Fi): 'http://192.168.x.x:3000/api'
 
   // Timeout duration - keep reasonably short to avoid "feels like freeze"
   // when backend is unreachable (especially on real devices).
