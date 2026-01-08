@@ -351,8 +351,8 @@ class _ProfileViewState extends State<ProfileView> {
 
   Widget _buildStatCard(String value, String label) {
     return Container(
-      height: 95,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      height: 100,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         color: primaryGreen,
         borderRadius: BorderRadius.circular(12),
@@ -370,19 +370,23 @@ class _ProfileViewState extends State<ProfileView> {
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               color: textWhite,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: textWhite.withOpacity(0.9),
-              height: 1.2,
+          Flexible(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: textWhite.withOpacity(0.9),
+                height: 1.2,
+              ),
             ),
           ),
         ],

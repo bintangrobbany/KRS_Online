@@ -214,43 +214,6 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Debug info
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ℹ️ Troubleshooting:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade900,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '• Pastikan backend running (npm start)\n'
-                      '• Gunakan IP lokal: http://192.168.1.10:3000/api\n'
-                      '• Jangan gunakan 10.0.2.2 jika timeout\n'
-                      '• NIM mahasiswa wajib 15 digit\n'
-                      '• Test NIM: 202210370311191\n'
-                      '• Password: password123',
-                      style: TextStyle(
-                        color: Colors.blue.shade800,
-                        fontSize: 11,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),
