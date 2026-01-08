@@ -5,9 +5,9 @@ class ApiConfig {
   // PRODUCTION & DEVELOPMENT CONFIGURATION
   // ========================================
 
-  // PRODUCTION URL (Backend hosted on Netlify)
+  // PRODUCTION URL (Backend hosted on Vercel)
   static const String _productionUrl =
-      'https://backend-krs-online.netlify.app/api';
+      'https://krs-online-api.vercel.app/api';
 
   // DEVELOPMENT URL (Local backend for testing)
   // Update IP sesuai komputer Anda: ipconfig (Windows) atau ifconfig (Mac/Linux)
